@@ -5,7 +5,7 @@ namespace App\Filament\Resources\ExpenseResource\Pages;
 use App\Filament\Resources\ExpenseResource;
 use App\Models\Store;
 use Filament\Actions;
-use Filament\Resources\Components\Tab;
+use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
 

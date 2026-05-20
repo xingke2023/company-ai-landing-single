@@ -33,6 +33,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandName('舌尖香港门店AI助手')
             ->brandLogo(null)
             ->brandLogoHeight('2.5rem')
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
                 fn (): HtmlString => new HtmlString('<style>.fi-logo { font-size: 2.2rem !important; font-weight: 300 !important; } .fi-sidebar-header .fi-logo { font-size: 1.5rem !important; } .fi-simple-header-heading { display: none !important; }</style>'),

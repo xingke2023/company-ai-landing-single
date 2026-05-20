@@ -18,6 +18,7 @@ use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Actions;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\DB;
 
@@ -235,7 +236,7 @@ class PurchaseOrderResource extends Resource
                     ]),
             ])
             ->actions([
-                Tables\Actions\Action::make('receive')
+                Actions\Action::make('receive')
                     ->label('确认收货')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
@@ -247,9 +248,9 @@ class PurchaseOrderResource extends Resource
                         static::processReceiving($record);
                     }),
 
-                Tables\Actions\EditAction::make(),
+                Actions\EditAction::make(),
 
-                Tables\Actions\Action::make('cancel')
+                Actions\Action::make('cancel')
                     ->label('取消')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')

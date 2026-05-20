@@ -9,6 +9,7 @@ use Filament\Forms;
 use Filament\Schemas\Schema;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Actions;
 use Filament\Tables\Table;
 
 class RoleResource extends Resource
@@ -154,8 +155,8 @@ class RoleResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()
+                Actions\EditAction::make(),
+                Actions\DeleteAction::make()
                     ->before(function (Role $record) {
                         // 禁止删除内置4个核心角色
                         if (array_key_exists($record->code, Role::$coreRoles)) {

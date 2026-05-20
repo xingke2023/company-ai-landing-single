@@ -11,6 +11,7 @@ use Filament\Schemas\Schema;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Actions;
 use Filament\Tables\Table;
 
 class UserResource extends Resource
@@ -138,9 +139,9 @@ class UserResource extends Resource
                     ->label('管理员'),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Actions\EditAction::make(),
 
-                Tables\Actions\Action::make('generateApiKey')
+                Actions\Action::make('generateApiKey')
                     ->label('生成 API Key')
                     ->icon('heroicon-o-key')
                     ->color('warning')
@@ -161,7 +162,7 @@ class UserResource extends Resource
                             ->send();
                     }),
 
-                Tables\Actions\Action::make('revokeApiKey')
+                Actions\Action::make('revokeApiKey')
                     ->label('撤销密钥')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')

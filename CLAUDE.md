@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **舌尖香港 · AI店长助手** — 生鲜门店 AI 管理系统，前后端分离的 monorepo。
 
-- **Backend**: Laravel 12 API (PHP 8.4) — `backend/`
+- **Backend**: Laravel 13 API (PHP 8.4) — `backend/`
 - **Frontend**: Next.js 16 (React 19.2, TypeScript) — `frontend/`
-- **Admin Panel**: Filament v3 — `http://0.0.0.0:8080/admin`
+- **Admin Panel**: Filament v5 (Livewire v4) — `http://0.0.0.0:8080/admin`
 
 ---
 
@@ -191,7 +191,7 @@ Key table groups:
 - **HR**: `employees`, `schedules`, `attendance_records`, `salary_records`
 - **Talent**: `resumes`
 
-### Filament Admin
+### Filament Admin (v5)
 
 - Panel provider: `backend/app/Providers/Filament/AdminPanelProvider.php`
 - Resources auto-discovered from `backend/app/Filament/Resources/`
@@ -208,6 +208,17 @@ Add new resource:
 ```bash
 php artisan make:filament-resource Product --generate
 ```
+
+**Filament v5 命名空间规则（v3 已迁移）：**
+- Table 行级 actions 用 `Filament\Actions\EditAction` 等，**不是** `Filament\Tables\Actions\EditAction`
+  - 在 Resource 文件里加 `use Filament\Actions;`，写 `Actions\EditAction::make()`
+- List page 的 `getTabs()` 返回 `Filament\Schemas\Components\Tabs\Tab`，**不是** `Filament\Resources\Components\Tab`
+
+**自定义 Blade 视图的 Tailwind CSS：**
+Filament 发布的 `app.css` 只含 Filament 自身组件用的类。自定义视图（如 `DailyOperations`）用到的 Tailwind 工具类需通过 Vite 主题编译：
+- 主题文件：`backend/resources/css/filament/admin/theme.css`
+- 面板配置：`.viteTheme('resources/css/filament/admin/theme.css')`
+- **修改自定义视图 Tailwind 类后需重新 `npm run build`**（在 `backend/`）
 
 ## 前端注意事项
 
@@ -237,7 +248,7 @@ return new Date().toISOString().slice(0, 10)
 
 ## 部署架构（生产）
 
-nginx 反向代理（`/etc/nginx/conf.d/default.conf`）：
+nginx 反向代理（`/etc/nginx/sites-available/s.xingke888.com` 等）：
 
 | 域名 | 代理到 | 内容 |
 |------|--------|------|
@@ -248,9 +259,11 @@ nginx 反向代理（`/etc/nginx/conf.d/default.conf`）：
 
 **⚠️ nginx 配置修改后需以 root 执行 `nginx -t && nginx -s reload`**，非 root 执行 `nginx -t` 会因证书权限报错（误报，实际 nginx 进程可正常读取）。
 
+**⚠️ Cloudflare 缓存注意：** `s.xingke888.com` 的 `/css/filament/`、`/js/filament/`、`/fonts/filament/` 路径已在 nginx 中设置 `Cache-Control: no-store`，防止 Cloudflare 缓存 Filament 静态资源。升级 Filament 后如样式异常，先确认 nginx 该规则仍有效。
+
 ---
 
-## Laravel 12 Conventions
+## Laravel 13 Conventions
 
 - No `app/Http/Kernel.php` — middleware registered in `bootstrap/app.php`
 - Use `casts()` method (not `$casts` property) on models

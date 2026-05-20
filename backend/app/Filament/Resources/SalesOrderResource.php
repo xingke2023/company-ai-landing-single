@@ -16,6 +16,7 @@ use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Actions;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -266,7 +267,7 @@ class SalesOrderResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
-                Tables\Actions\Action::make('refund')
+                Actions\Action::make('refund')
                     ->label('退款')
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('danger')
@@ -276,12 +277,12 @@ class SalesOrderResource extends Resource
                     ->visible(fn (SalesOrder $record) => $record->status === 1)
                     ->action(fn (SalesOrder $record) => static::processRefund($record)),
 
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Actions\EditAction::make(),
+                Actions\DeleteAction::make(),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                Actions\BulkActionGroup::make([
+                    Actions\DeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('sold_at', 'desc');

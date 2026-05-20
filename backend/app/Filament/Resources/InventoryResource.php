@@ -8,6 +8,7 @@ use Filament\Forms;
 use Filament\Schemas\Schema;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Actions;
 use Filament\Tables\Table;
 
 class InventoryResource extends Resource
@@ -107,7 +108,7 @@ class InventoryResource extends Resource
                     ->query(fn ($query) => $query->where('current_qty', '<=', 10)),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Actions\EditAction::make(),
             ])
             ->bulkActions([])
             ->defaultSort('store_id');
