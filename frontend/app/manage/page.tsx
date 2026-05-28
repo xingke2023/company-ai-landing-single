@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { ImagePlus, Mic, MicOff } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
 import { assistantApi, type AiOperation } from '@/lib/api/assistant'
 import { inventoryApi } from '@/lib/api/inventory'
@@ -444,7 +445,7 @@ function SalesReportCard({ data: initialData }: { data: any }) {
           value={date}
           max={todayStr()}
           onChange={handleDateChange}
-          className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-orange-300"
+          className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#E65C46]/40"
         />
         {loading && <span className="text-xs text-gray-300">加载中…</span>}
       </div>
@@ -805,7 +806,7 @@ export default function ManagePage() {
     {
       id: 0,
       role: 'system',
-      text: '您好！我是门店AI助手。\n\n点击下方快捷按钮可直接查询库存、销售、天气等数据；也可以用文字或语音告诉我进货、销售情况，我会自动录入系统。',
+      text: '您好！我是您的 AI 店长助手 🍅\n\n可以这样跟我说：\n📦「番茄卖完了」「收到 50 斤胡萝卜」— 我会自动录入系统\n📊「今日销售」「库存」「天气」— 我会拉数据展示\n🎤 点麦克风直接说话，🖼️ 拍照上传也行\n\n或者直接点下方的「查询数据 / 录入数据」按钮 👇',
       timestamp: new Date(),
     },
   ])
@@ -814,6 +815,7 @@ export default function ManagePage() {
   const [sessionId, setSessionId] = useState<number | undefined>()
   const [selectedImage, setSelectedImage] = useState<{ base64: string; preview: string } | null>(null)
   const [isRecording, setIsRecording] = useState(false)
+  const [fontSize, setFontSize] = useState<'sm' | 'md' | 'lg'>('md')
   const [interimText, setInterimText] = useState('')
 
   const [activeForm, setActiveForm] = useState<WriteAction | null>(null)
@@ -1062,25 +1064,51 @@ export default function ManagePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-[#f5f4f0]">
+      <div className="flex items-center justify-center h-screen bg-[#F8F2ED]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#941100] to-[#FF9300] flex items-center justify-center text-2xl shadow-lg">🍜</div>
-          <p className="text-gray-400 text-sm">加载中...</p>
+          <div className="w-12 h-12 rounded-full bg-white border-[1.5px] border-[#E65C46] flex items-center justify-center text-2xl shadow-md">🍅</div>
+          <p className="text-[#9e8074] text-sm font-[family-name:var(--font-manrope)]">加载中...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col h-screen bg-[#f5f4f0] max-w-2xl mx-auto">
+    <div className="min-h-screen bg-[#F8F2ED] flex items-stretch sm:items-center justify-center sm:p-4 font-[family-name:var(--font-manrope)]">
+    <div className="flex flex-col w-full h-screen sm:h-auto sm:max-h-[92vh] sm:max-w-[440px] sm:rounded-[20px] overflow-hidden bg-[#F8F2ED] sm:shadow-[0_24px_80px_rgba(0,0,0,0.25)]">
 
       {/* ── Header ── */}
-      <div className="bg-gradient-to-r from-[#941100] to-[#c0392b] px-4 py-3 flex items-center justify-between shrink-0 relative">
-        <div className="flex items-center">
-          <div>
-            <div className="text-xl font-light text-white leading-tight tracking-wide">舌尖香港</div>
-            <div className="text-[10px] text-white/70 leading-tight">AI门店助手</div>
+      <div
+        className="px-4 py-3 flex items-center justify-between shrink-0 relative"
+        style={{ background: 'linear-gradient(135deg, #E65C46 0%, #c9402a 100%)' }}
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-[38px] h-[38px] rounded-full bg-white border-2 border-white/80 flex items-center justify-center text-xl shrink-0">
+            🍅
           </div>
+          <div className="min-w-0">
+            <div className="text-[15px] font-bold text-white leading-tight font-[family-name:var(--font-bricolage)] truncate">舌尖香港 · AI 店长</div>
+            <div className="text-[12px] text-white/75 leading-tight flex items-center gap-1.5 mt-0.5 font-[family-name:var(--font-manrope)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#7fff7f] inline-block" />
+              AI 在线 · 实时录入
+            </div>
+          </div>
+        </div>
+
+        {/* 字号控制 A/A/A */}
+        <div className="flex items-center gap-0.5 bg-black/15 rounded-lg px-1 py-0.5 mr-1 shrink-0">
+          {(['sm', 'md', 'lg'] as const).map((s, i) => (
+            <button
+              key={s}
+              onClick={() => setFontSize(s)}
+              className={`leading-none px-1.5 py-0.5 rounded font-bold text-white transition-colors font-[family-name:var(--font-manrope)] ${
+                fontSize === s ? 'bg-white/30' : 'hover:bg-white/10'
+              }`}
+              style={{ fontSize: [11, 13, 16][i] }}
+            >
+              A
+            </button>
+          ))}
         </div>
         <div className="flex items-center gap-2 text-xs">
           {user && (
@@ -1116,7 +1144,7 @@ export default function ManagePage() {
         {showMobileMenu && (
           <>
             <div className="fixed inset-0 z-20" onClick={() => setShowMobileMenu(false)} />
-            <div className="sm:hidden absolute top-full left-0 right-0 z-30 bg-gradient-to-b from-[#941100] to-[#7a0e00] border-t border-white/10 shadow-xl animate-slide-up">
+            <div className="sm:hidden absolute top-full left-0 right-0 z-30 bg-gradient-to-b from-[#E65C46] to-[#c9402a] border-t border-white/10 shadow-xl animate-slide-up">
               {user && (
                 <div className="px-4 py-2.5 border-b border-white/10 flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
@@ -1161,35 +1189,38 @@ export default function ManagePage() {
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
 
             {msg.role === 'system' && (
-              <div className="w-8 h-8 rounded-2xl bg-gradient-to-br from-[#941100] to-[#FF9300] flex items-center justify-center text-white text-[10px] font-bold mr-2.5 shrink-0 mt-1 shadow-sm">
-                AI
+              <div className="w-[26px] h-[26px] rounded-full bg-white border-[1.5px] border-[#E65C46] flex items-center justify-center text-[13px] mr-[7px] shrink-0 mt-0.5">
+                🍅
               </div>
             )}
 
-            <div className={`flex flex-col gap-1.5 ${msg.role === 'user' ? 'items-end' : 'items-start'} max-w-[85%]`}>
+            <div className={`flex flex-col gap-1.5 ${msg.role === 'user' ? 'items-end' : 'items-start'} max-w-[78%] font-[family-name:var(--font-manrope)]`}>
 
               {msg.imagePreview && (
                 <img src={msg.imagePreview} alt="上传图片" className="max-w-48 max-h-48 rounded-2xl object-cover shadow-md" />
               )}
 
-              <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-line shadow-sm ${
-                msg.role === 'user'
-                  ? 'bg-[#941100] text-white rounded-br-md'
-                  : 'bg-white text-gray-700 rounded-bl-md border border-stone-100'
-              }`}>
+              <div
+                className={`px-[13px] py-[9px] rounded-[15px] leading-[1.55] whitespace-pre-line ${
+                  msg.role === 'user'
+                    ? 'bg-[#E65C46] text-white rounded-br-[4px]'
+                    : 'bg-white text-[#2A1F19] rounded-bl-[4px] shadow-[0_2px_6px_rgba(230,92,70,0.10)]'
+                }`}
+                style={{ fontSize: fontSize === 'sm' ? 12 : fontSize === 'lg' ? 16 : 14 }}
+              >
                 {msg.text}
               </div>
 
               {msg.cardType && msg.cardData !== undefined && (
-                <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm w-full mt-1">
+                <div className="bg-white border border-[#2A1F19]/10 rounded-2xl p-4 shadow-[0_2px_6px_rgba(230,92,70,0.06)] w-full mt-1">
                   <CardRenderer type={msg.cardType} data={msg.cardData} />
                 </div>
               )}
 
               {msg.operations && msg.operations.length > 0 && (
-                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl px-4 py-3 w-full mt-1">
-                  <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-xs mb-2">
-                    <span className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[10px]">✓</span>
+                <div className="bg-white border border-[#E65C46]/15 rounded-2xl px-4 py-3 w-full mt-1 shadow-[0_2px_6px_rgba(230,92,70,0.06)]">
+                  <div className="flex items-center gap-1.5 text-[#E65C46] font-semibold text-xs mb-2">
+                    <span className="w-4 h-4 rounded-full bg-[#E65C46] flex items-center justify-center text-white text-[10px]">✓</span>
                     已录入系统
                   </div>
                   <div className="space-y-1.5">
@@ -1198,26 +1229,26 @@ export default function ManagePage() {
                         <span className={`px-2 py-0.5 rounded-lg text-white text-[10px] font-bold ${
                           op.action === 'in' ? 'bg-emerald-500' :
                           op.action === 'out' ? 'bg-red-400' :
-                          op.action === 'sell' ? 'bg-orange-400' : 'bg-amber-400'
+                          op.action === 'sell' ? 'bg-[#E65C46]' : 'bg-amber-400'
                         }`}>
                           {op.action === 'in' ? '进货' : op.action === 'out' ? '出库' : op.action === 'sell' ? '销售' : '调整'}
                         </span>
-                        <span className="font-semibold text-gray-700">{op.product_name}</span>
-                        <span className="tabular-nums text-gray-500">{op.qty}{op.unit}</span>
-                        <span className="text-emerald-400 tabular-nums ml-auto">{op.qty_before} → {op.qty_after}</span>
+                        <span className="font-semibold text-[#2A1F19]">{op.product_name}</span>
+                        <span className="tabular-nums text-[#6B5549]">{op.qty}{op.unit}</span>
+                        <span className="text-[#9e8074] tabular-nums ml-auto">{op.qty_before} → {op.qty_after}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              <span className="text-[10px] text-gray-300 px-1 tabular-nums">
+              <span className="text-[10px] text-[#9e8074]/70 px-1 tabular-nums">
                 {msg.timestamp.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
 
             {msg.role === 'user' && (
-              <div className="w-8 h-8 rounded-2xl bg-gray-100 flex items-center justify-center text-sm ml-2.5 shrink-0 mt-1">
+              <div className="w-[26px] h-[26px] rounded-full bg-[#F8F2ED] border border-[#2A1F19]/10 flex items-center justify-center text-[13px] ml-[7px] shrink-0 mt-0.5">
                 👤
               </div>
             )}
@@ -1225,14 +1256,14 @@ export default function ManagePage() {
         ))}
 
         {isSending && (
-          <div className="flex justify-start">
-            <div className="w-8 h-8 rounded-2xl bg-gradient-to-br from-[#941100] to-[#FF9300] flex items-center justify-center text-white text-[10px] font-bold mr-2.5 shrink-0 shadow-sm">
-              AI
+          <div className="flex justify-start items-end gap-[7px]">
+            <div className="w-[26px] h-[26px] rounded-full bg-white border-[1.5px] border-[#E65C46] flex items-center justify-center text-[13px] shrink-0">
+              🍅
             </div>
-            <div className="bg-white shadow-sm border border-stone-100 px-5 py-3.5 rounded-2xl rounded-bl-md">
-              <div className="flex gap-1.5 items-center">
-                {[0, 160, 320].map(d => (
-                  <span key={d} className="w-2 h-2 bg-stone-200 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
+            <div className="bg-white shadow-[0_2px_6px_rgba(230,92,70,0.10)] px-[14px] py-[10px] rounded-[16px] rounded-bl-[4px]">
+              <div className="flex gap-1 items-center">
+                {[0, 200, 400].map(d => (
+                  <span key={d} className="w-1.5 h-1.5 bg-[#E65C46] rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
                 ))}
               </div>
             </div>
@@ -1244,7 +1275,7 @@ export default function ManagePage() {
 
       {/* ── Image preview bar ── */}
       {selectedImage && (
-        <div className="bg-white border-t border-stone-100 px-4 py-2.5 flex items-center gap-3 shrink-0">
+        <div className="bg-white border-t border-[#2A1F19]/8 px-4 py-2.5 flex items-center gap-3 shrink-0">
           <img src={selectedImage.preview} alt="预览" className="w-12 h-12 object-cover rounded-xl border border-stone-100 shrink-0" />
           <span className="text-xs text-stone-400 flex-1">AI 将自动识别图片类型，可附加文字补充说明</span>
           <button onClick={() => setSelectedImage(null)} className="w-6 h-6 flex items-center justify-center rounded-full text-stone-300 hover:text-stone-500 hover:bg-stone-100 transition-colors text-lg leading-none shrink-0">×</button>
@@ -1252,7 +1283,7 @@ export default function ManagePage() {
       )}
 
       {/* ── Bottom area ── */}
-      <div className="bg-white border-t border-gray-100 shrink-0 relative">
+      <div className="bg-white border-t border-[#2A1F19]/8 shrink-0 relative">
         {!isAuthenticated ? (
           <div>
             <div className="flex items-end gap-2 px-4 py-3">
@@ -1262,14 +1293,14 @@ export default function ManagePage() {
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
                 placeholder="发送「登录 用户名 密码」快速登录..."
                 rows={1}
-                className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent max-h-24 placeholder:text-gray-300 transition-shadow"
+                className="flex-1 bg-[#F8F2ED] border border-[#2A1F19]/12 rounded-[10px] px-3.5 py-2 text-sm text-[#2A1F19] resize-none focus:outline-none focus:ring-2 focus:ring-[#E65C46]/40 focus:border-[#E65C46]/40 max-h-24 placeholder:text-[#9e8074]/70 transition-shadow font-[family-name:var(--font-manrope)]"
               />
               <button
                 onClick={handleSend}
                 disabled={isSending || !inputText.trim()}
-                className="w-10 h-10 flex items-center justify-center rounded-2xl bg-[#941100] hover:bg-[#7a0e00] disabled:bg-stone-200 text-white shrink-0 transition-colors font-bold text-base shadow-sm disabled:shadow-none"
+                className="h-[38px] flex items-center justify-center rounded-[10px] bg-[#E65C46] hover:bg-[#c9402a] disabled:bg-[#E65C46]/15 disabled:text-[#9e8074] text-white shrink-0 transition-colors text-[13px] font-bold px-3 font-[family-name:var(--font-manrope)]"
               >
-                {isSending ? '…' : '↑'}
+                {isSending ? '…' : '发送'}
               </button>
             </div>
             <div className="border-t border-stone-100 px-4 py-3 space-y-2.5">
@@ -1282,7 +1313,7 @@ export default function ManagePage() {
                   value={loginField}
                   onChange={e => setLoginField(e.target.value)}
                   required
-                  className="flex-1 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent min-w-0 placeholder:text-stone-300"
+                  className="flex-1 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E65C46]/40 focus:border-transparent min-w-0 placeholder:text-stone-300"
                 />
                 <input
                   type="password"
@@ -1290,12 +1321,12 @@ export default function ManagePage() {
                   value={loginPassword}
                   onChange={e => setLoginPassword(e.target.value)}
                   required
-                  className="flex-1 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent min-w-0 placeholder:text-stone-300"
+                  className="flex-1 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E65C46]/40 focus:border-transparent min-w-0 placeholder:text-stone-300"
                 />
                 <button
                   type="submit"
                   disabled={loginLoading}
-                  className="shrink-0 bg-[#941100] hover:bg-[#7a0e00] disabled:bg-stone-200 text-white rounded-xl px-4 py-2 text-sm font-semibold transition-colors shadow-sm"
+                  className="shrink-0 bg-[#E65C46] hover:bg-[#c9402a] disabled:bg-stone-200 text-white rounded-xl px-4 py-2 text-sm font-semibold transition-colors shadow-sm"
                 >
                   {loginLoading ? '…' : '登录'}
                 </button>
@@ -1351,13 +1382,13 @@ export default function ManagePage() {
                         disabled={isSending}
                         className={`flex flex-col items-center gap-1 rounded-xl py-3 px-2 transition-colors disabled:opacity-40 ${
                           activeForm === action
-                            ? 'bg-[#941100] text-white shadow-sm'
-                            : 'bg-[#941100]/5 hover:bg-[#941100]/10 border border-[#941100]/10'
+                            ? 'bg-[#E65C46] text-white shadow-sm'
+                            : 'bg-[#E65C46]/5 hover:bg-[#E65C46]/10 border border-[#E65C46]/10'
                         }`}
                       >
                         <span className="text-xl">{emoji}</span>
                         <span className={`text-[10px] font-semibold text-center leading-tight ${
-                          activeForm === action ? 'text-white' : 'text-[#941100]'
+                          activeForm === action ? 'text-white' : 'text-[#E65C46]'
                         }`}>{label}</span>
                       </button>
                     ))}
@@ -1386,8 +1417,8 @@ export default function ManagePage() {
                 disabled={isSending}
                 className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all disabled:opacity-40 ${
                   bottomTab === 'write'
-                    ? 'bg-[#941100] text-white shadow-sm'
-                    : 'bg-[#941100]/5 text-[#941100] border border-[#941100]/20 hover:bg-[#941100]/10'
+                    ? 'bg-[#E65C46] text-white shadow-sm'
+                    : 'bg-[#E65C46]/5 text-[#E65C46] border border-[#E65C46]/20 hover:bg-[#E65C46]/10'
                 }`}
               >
                 ✏️ 录入数据
@@ -1400,7 +1431,7 @@ export default function ManagePage() {
               <div className="mx-4 mb-2 border border-stone-200 rounded-2xl bg-stone-50 p-3.5 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-stone-700 flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-lg bg-[#941100] flex items-center justify-center text-white text-xs">📥</span>
+                    <span className="w-5 h-5 rounded-lg bg-[#E65C46] flex items-center justify-center text-white text-xs">📥</span>
                     录入今日进货
                   </span>
                   <button onClick={() => setActiveForm(null)} className="w-6 h-6 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-600 hover:bg-white transition-colors text-lg leading-none">×</button>
@@ -1411,7 +1442,7 @@ export default function ManagePage() {
                       placeholder="商品名"
                       value={item.name}
                       onChange={e => setPurchaseItems(prev => prev.map((p, j) => j === i ? { ...p, name: e.target.value } : p))}
-                      className="flex-1 bg-white border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent placeholder:text-stone-300"
+                      className="flex-1 bg-white border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E65C46]/40 focus:border-transparent placeholder:text-stone-300"
                     />
                     <input
                       type="number"
@@ -1419,7 +1450,7 @@ export default function ManagePage() {
                       value={item.qty}
                       min="0"
                       onChange={e => setPurchaseItems(prev => prev.map((p, j) => j === i ? { ...p, qty: e.target.value } : p))}
-                      className="w-16 bg-white border border-stone-200 rounded-xl px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent text-center placeholder:text-stone-300"
+                      className="w-16 bg-white border border-stone-200 rounded-xl px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E65C46]/40 focus:border-transparent text-center placeholder:text-stone-300"
                     />
                     <select
                       value={item.unit}
@@ -1436,14 +1467,14 @@ export default function ManagePage() {
                 <div className="flex justify-between items-center pt-0.5">
                   <button
                     onClick={() => setPurchaseItems(prev => [...prev, { name: '', qty: '', unit: '斤', price: '' }])}
-                    className="text-xs text-[#941100] hover:text-[#7a0e00] font-medium"
+                    className="text-xs text-[#E65C46] hover:text-[#c9402a] font-medium"
                   >
                     + 添加商品
                   </button>
                   <button
                     onClick={handlePurchaseSubmit}
                     disabled={isSending || !purchaseItems.some(i => i.name.trim() && Number(i.qty) > 0)}
-                    className="bg-[#941100] hover:bg-[#7a0e00] disabled:bg-stone-200 text-white rounded-xl px-5 py-1.5 text-sm font-semibold transition-colors shadow-sm"
+                    className="bg-[#E65C46] hover:bg-[#c9402a] disabled:bg-stone-200 text-white rounded-xl px-5 py-1.5 text-sm font-semibold transition-colors shadow-sm"
                   >
                     确认收货
                   </button>
@@ -1456,7 +1487,7 @@ export default function ManagePage() {
               <div className="mx-4 mb-2 border border-stone-200 rounded-2xl bg-stone-50 p-3.5 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-stone-700 flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-lg bg-[#941100] flex items-center justify-center text-white text-xs">🛒</span>
+                    <span className="w-5 h-5 rounded-lg bg-[#E65C46] flex items-center justify-center text-white text-xs">🛒</span>
                     补录销售
                   </span>
                   <button onClick={() => setActiveForm(null)} className="w-6 h-6 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-600 hover:bg-white transition-colors text-lg leading-none">×</button>
@@ -1465,7 +1496,7 @@ export default function ManagePage() {
                   placeholder="商品名（如：番茄、白菜）"
                   value={suppProduct}
                   onChange={e => setSuppProduct(e.target.value)}
-                  className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent placeholder:text-stone-300"
+                  className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E65C46]/40 focus:border-transparent placeholder:text-stone-300"
                 />
                 <div className="flex gap-2">
                   {(['sold_out', 'remaining', 'qty'] as const).map(t => (
@@ -1474,7 +1505,7 @@ export default function ManagePage() {
                       onClick={() => setSuppType(t)}
                       className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-colors border ${
                         suppType === t
-                          ? 'bg-[#941100] text-white border-[#941100] shadow-sm'
+                          ? 'bg-[#E65C46] text-white border-[#E65C46] shadow-sm'
                           : 'bg-white text-stone-500 border-stone-200 hover:bg-stone-50'
                       }`}
                     >
@@ -1490,7 +1521,7 @@ export default function ManagePage() {
                       value={suppQty}
                       min="0"
                       onChange={e => setSuppQty(e.target.value)}
-                      className="flex-1 bg-white border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent placeholder:text-stone-300"
+                      className="flex-1 bg-white border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E65C46]/40 focus:border-transparent placeholder:text-stone-300"
                     />
                     <span className="text-sm text-stone-400 font-medium">斤</span>
                   </div>
@@ -1499,7 +1530,7 @@ export default function ManagePage() {
                   <button
                     onClick={handleSupplementSubmit}
                     disabled={isSending || !suppProduct.trim() || (suppType !== 'sold_out' && !suppQty)}
-                    className="bg-[#941100] hover:bg-[#7a0e00] disabled:bg-stone-200 text-white rounded-xl px-5 py-1.5 text-sm font-semibold transition-colors shadow-sm"
+                    className="bg-[#E65C46] hover:bg-[#c9402a] disabled:bg-stone-200 text-white rounded-xl px-5 py-1.5 text-sm font-semibold transition-colors shadow-sm"
                   >
                     确认补录
                   </button>
@@ -1558,10 +1589,10 @@ export default function ManagePage() {
             <div className="flex items-end gap-2 px-4 pb-4 pt-2">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-9 h-9 flex items-center justify-center rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-500 shrink-0 transition-colors text-base"
+                className="w-[38px] h-[38px] flex items-center justify-center rounded-[10px] bg-white border-[1.5px] border-[#E65C46] hover:bg-[#E65C46]/5 text-[#E65C46] shrink-0 transition-colors"
                 title="上传图片"
               >
-                📷
+                <ImagePlus size={18} strokeWidth={2} />
               </button>
               <input
                 ref={fileInputRef}
@@ -1583,14 +1614,14 @@ export default function ManagePage() {
 
               <button
                 onClick={handleVoiceToggle}
-                className={`w-9 h-9 flex items-center justify-center rounded-2xl shrink-0 transition-all text-base ${
+                className={`w-[38px] h-[38px] flex items-center justify-center rounded-[10px] border-[1.5px] border-[#E65C46] shrink-0 transition-all ${
                   isRecording
-                    ? 'bg-red-500 text-white shadow-lg shadow-red-200 animate-pulse'
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-500'
+                    ? 'bg-[#E65C46] text-white animate-pulse shadow-[0_0_0_4px_rgba(230,92,70,0.18)]'
+                    : 'bg-white hover:bg-[#E65C46]/5 text-[#E65C46]'
                 }`}
                 title={isRecording ? '点击停止' : '语音输入'}
               >
-                🎤
+                {isRecording ? <MicOff size={18} strokeWidth={2} /> : <Mic size={18} strokeWidth={2} />}
               </button>
 
               <div className="relative flex-1">
@@ -1600,10 +1631,10 @@ export default function ManagePage() {
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
                   placeholder={isRecording ? '请说话...' : '说点什么，或告诉我今天的库存情况...'}
                   rows={1}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent max-h-32 transition-colors placeholder:text-stone-300"
+                  className="w-full bg-[#F8F2ED] border border-[#2A1F19]/12 rounded-[10px] px-3.5 py-2 text-sm text-[#2A1F19] resize-none focus:outline-none focus:ring-2 focus:ring-[#E65C46]/40 focus:border-[#E65C46]/40 max-h-32 transition-colors placeholder:text-[#9e8074]/70 font-[family-name:var(--font-manrope)]"
                 />
                 {interimText && (
-                  <div className="absolute left-4 bottom-2.5 text-sm text-stone-400 pointer-events-none truncate max-w-[calc(100%-2rem)]">
+                  <div className="absolute left-3.5 bottom-2 text-sm text-[#9e8074] pointer-events-none truncate max-w-[calc(100%-1.75rem)] font-[family-name:var(--font-manrope)]">
                     {interimText}
                   </div>
                 )}
@@ -1612,21 +1643,22 @@ export default function ManagePage() {
               <button
                 onClick={handleSend}
                 disabled={isSending || (!inputText.trim() && !selectedImage)}
-                className="w-10 h-10 flex items-center justify-center rounded-2xl bg-[#941100] hover:bg-[#7a0e00] disabled:bg-stone-200 text-white shrink-0 transition-colors font-bold text-base shadow-sm disabled:shadow-none"
+                className="h-[38px] flex items-center justify-center rounded-[10px] bg-[#E65C46] hover:bg-[#c9402a] disabled:bg-[#E65C46]/15 disabled:text-[#9e8074] text-white shrink-0 transition-colors text-[13px] font-bold px-3 font-[family-name:var(--font-manrope)]"
               >
-                {isSending ? '…' : '↑'}
+                {isSending ? '…' : '发送'}
               </button>
             </div>
 
             {isRecording && (
-              <p className="text-center text-red-500 text-xs pb-3 -mt-2 font-medium flex items-center justify-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping inline-block" />
+              <p className="text-center text-[#E65C46] text-xs pb-3 -mt-2 font-medium flex items-center justify-center gap-1.5 font-[family-name:var(--font-manrope)]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#E65C46] animate-ping inline-block" />
                 正在识别语音，说完后点麦克风停止
               </p>
             )}
           </>
         )}
       </div>
+    </div>
     </div>
   )
 }
