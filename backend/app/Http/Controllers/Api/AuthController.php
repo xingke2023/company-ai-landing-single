@@ -5,14 +5,17 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Models\User;
+use App\Models\UserStoreRole;
 use App\Services\JwtService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
-    public function register(Request $request): \Illuminate\Http\JsonResponse
+    public function register(Request $request): JsonResponse
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -29,7 +32,7 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        \App\Models\UserStoreRole::create([
+        UserStoreRole::create([
             'user_id' => $user->id,
             'store_id' => $request->integer('store_id'),
             'role_id' => 4, // 门店店员（默认）
@@ -53,7 +56,7 @@ class AuthController extends Controller
         ], 201);
     }
 
-    public function login(Request $request): \Illuminate\Http\JsonResponse
+    public function login(Request $request): JsonResponse
     {
         $request->validate([
             'login' => ['required', 'string'],
@@ -125,16 +128,22 @@ class AuthController extends Controller
         ]);
     }
 
-    public function logout(Request $request)
+    public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        $token = $request->user()?->currentAccessToken();
+
+        // 仅真正的 Sanctum PersonalAccessToken 可在服务端删除；
+        // JWT（无状态，JwtAbilityToken）与会话（TransientToken）没有 delete()，跳过即可。
+        if ($token instanceof PersonalAccessToken) {
+            $token->delete();
+        }
 
         return response()->json([
             'message' => 'Logged out successfully',
         ]);
     }
 
-    public function me(Request $request): \Illuminate\Http\JsonResponse
+    public function me(Request $request): JsonResponse
     {
         $user = $request->user();
         $storeId = $user->resolveStoreId();

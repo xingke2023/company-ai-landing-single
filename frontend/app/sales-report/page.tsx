@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { salesApi, type SalesReport } from '@/lib/api/sales'
+import { useMiniProgram } from '@/components/back-to-chat-bar'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -28,7 +29,7 @@ function pct(part: number, total: number): string {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function SalesReportPage() {
-  const { token, isAuthenticated, loading } = useAuth()
+  const { token, isAuthenticated, loading, retry, authErrorMsg } = useAuth()
   const router = useRouter()
 
   const [date, setDate] = useState(todayStr())
@@ -38,10 +39,20 @@ export default function SalesReportPage() {
   const [sortKey, setSortKey] = useState<SortKey>('sales_amount')
   const [sortAsc, setSortAsc] = useState(false)
   const [expandedRow, setExpandedRow] = useState<number | null>(null)
+  const [authError, setAuthError] = useState(false)
+  const { inMiniProgram, backToChat } = useMiniProgram()
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) router.push('/login')
-  }, [loading, isAuthenticated, router])
+    // 小程序 web-view 内**不自动 navigateBack 把用户踢走**（鉴权时序/存储不可用都可能误判）；
+    // 改为显示「加载失败，点击重试」。普通浏览器才跳 /login。
+    if (loading || isAuthenticated) return
+    if (inMiniProgram) {
+      setAuthError(true)
+    } else {
+      router.push('/login')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, isAuthenticated, inMiniProgram, router])
 
   const fetchReport = useCallback(async () => {
     if (!token) return
@@ -84,13 +95,34 @@ export default function SalesReportPage() {
     return <div className="flex items-center justify-center h-screen text-gray-400">加载中...</div>
   }
 
+  if (authError && !isAuthenticated) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen gap-4 px-8 text-center">
+        <p className="text-gray-500">登录态加载失败，请重试</p>
+        {authErrorMsg && (
+          <p className="text-xs text-gray-400 break-all max-w-xs">原因：{authErrorMsg}{!token && '（未收到 token）'}</p>
+        )}
+        <button
+          onClick={() => { setAuthError(false); retry() }}
+          className="bg-[#E65C46] text-white text-sm font-semibold px-8 py-2.5 rounded-full active:opacity-80"
+        >
+          点击重试
+        </button>
+        {inMiniProgram && (
+          <button onClick={backToChat} className="text-gray-400 text-sm underline">返回聊天</button>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
+
 
       {/* Header */}
       <div className="bg-white border-b px-4 py-3 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-2">
-          <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600 text-sm mr-1">←</button>
+          <button onClick={inMiniProgram ? backToChat : () => router.back()} className="text-gray-400 hover:text-gray-600 text-sm mr-1">←</button>
           <h1 className="text-base font-semibold text-gray-800">每日销售报表</h1>
         </div>
         <button

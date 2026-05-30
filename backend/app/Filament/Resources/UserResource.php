@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
 use Filament\Forms;
+use Filament\Schemas;
 use Filament\Schemas\Schema;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -30,11 +31,19 @@ class UserResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $form
+        return $schema
             ->schema([
-                Forms\Components\Section::make('账户信息')
+                Schemas\Components\Section::make('账户信息')
                     ->columns(2)
                     ->schema([
+                        Forms\Components\TextInput::make('username')
+                            ->label('用户名')
+                            ->required()
+                            ->maxLength(255)
+                            ->unique(ignoreRecord: true)
+                            ->helperText('用于登录，需全局唯一；建议小写字母/数字/下划线')
+                            ->rule('regex:/^[a-zA-Z0-9_]+$/'),
+
                         Forms\Components\TextInput::make('name')
                             ->label('姓名')
                             ->required()
@@ -44,7 +53,8 @@ class UserResource extends Resource
                             ->label('邮箱')
                             ->email()
                             ->required()
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->unique(ignoreRecord: true),
 
                         Forms\Components\TextInput::make('password')
                             ->label('密码')
@@ -60,8 +70,8 @@ class UserResource extends Resource
                             ->inline(false),
                     ]),
 
-                Forms\Components\Section::make('角色分配')
-                    ->description('为用户分配门店角色，一个用户可同时持有多个门店的不同角色')
+                Schemas\Components\Section::make('角色分配')
+                    ->description('为用户分配门店角色，必须指定门店；角色仅限「门店店长」或「门店店员」')
                     ->schema([
                         Forms\Components\Repeater::make('storeRoles')
                             ->label('')
@@ -71,11 +81,13 @@ class UserResource extends Resource
                                     ->label('门店')
                                     ->options(Store::query()->where('status', 1)->pluck('name', 'id'))
                                     ->searchable()
-                                    ->placeholder('总部/区域级可不选'),
+                                    ->required(),
 
                                 Forms\Components\Select::make('role_id')
                                     ->label('角色')
-                                    ->options(Role::query()->pluck('name', 'id'))
+                                    ->options(Role::query()
+                                        ->whereIn('code', ['STORE_MANAGER', 'STORE_STAFF'])
+                                        ->pluck('name', 'id'))
                                     ->required()
                                     ->searchable(),
 

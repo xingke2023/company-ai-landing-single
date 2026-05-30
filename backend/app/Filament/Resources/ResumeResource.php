@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ResumeResource\Pages;
 use App\Models\Resume;
 use Filament\Forms;
+use Filament\Schemas;
 use Filament\Schemas\Schema;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -29,7 +30,7 @@ class ResumeResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('基本信息')
+                Schemas\Components\Section::make('基本信息')
                     ->columns(3)
                     ->schema([
                         Forms\Components\TextInput::make('name')
@@ -59,7 +60,7 @@ class ResumeResource extends Resource
                             ->required(),
                     ]),
 
-                Forms\Components\Section::make('求职意向')
+                Schemas\Components\Section::make('求职意向')
                     ->columns(2)
                     ->schema([
                         Forms\Components\TagsInput::make('districts')
@@ -82,7 +83,7 @@ class ResumeResource extends Resource
                             ->suggestions(['生鲜处理', '收银', '陈列', '库存管理', '驾驶', '食品安全证书']),
                     ]),
 
-                Forms\Components\Section::make('薪资与档期')
+                Schemas\Components\Section::make('薪资与档期')
                     ->columns(3)
                     ->schema([
                         Forms\Components\TextInput::make('experience_years')

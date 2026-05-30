@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ProductResource\Pages;
 use App\Models\Product;
 use Filament\Forms;
+use Filament\Schemas;
 use Filament\Schemas\Schema;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -29,7 +30,7 @@ class ProductResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('基本信息')
+                Schemas\Components\Section::make('基本信息')
                     ->columns(2)
                     ->schema([
                         Forms\Components\TextInput::make('name')
@@ -70,7 +71,7 @@ class ProductResource extends Resource
                             ->default(false),
                     ]),
 
-                Forms\Components\Section::make('库存与采购')
+                Schemas\Components\Section::make('库存与采购')
                     ->columns(2)
                     ->schema([
                         Forms\Components\TextInput::make('shelf_life_days')

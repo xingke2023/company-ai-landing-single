@@ -6,6 +6,7 @@ use App\Filament\Resources\SupplierResource\Pages;
 use App\Filament\Resources\SupplierResource\RelationManagers;
 use App\Models\Supplier;
 use Filament\Forms;
+use Filament\Schemas;
 use Filament\Schemas\Schema;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -30,7 +31,7 @@ class SupplierResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('基本信息')
+                Schemas\Components\Section::make('基本信息')
                     ->columns(2)
                     ->schema([
                         Forms\Components\TextInput::make('name')
@@ -59,7 +60,7 @@ class SupplierResource extends Resource
                             ->maxLength(200),
                     ]),
 
-                Forms\Components\Section::make('结算与交货')
+                Schemas\Components\Section::make('结算与交货')
                     ->columns(2)
                     ->schema([
                         Forms\Components\Select::make('payment_terms')

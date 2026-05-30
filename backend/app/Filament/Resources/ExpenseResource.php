@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ExpenseResource\Pages;
 use App\Models\Expense;
 use Filament\Forms;
+use Filament\Schemas;
 use Filament\Schemas\Schema;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -30,7 +31,7 @@ class ExpenseResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('支出信息')
+                Schemas\Components\Section::make('支出信息')
                     ->columns(2)
                     ->schema([
                         Forms\Components\Select::make('store_id')

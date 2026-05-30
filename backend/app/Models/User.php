@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,7 +15,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements FilamentUser
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
@@ -117,9 +118,12 @@ class User extends Authenticatable implements FilamentUser
     {
         $token = $this->currentAccessToken();
 
-        if ($token) {
+        // PersonalAccessToken / JwtAbilityToken 才有 abilities；
+        // 会话鉴权下 currentAccessToken() 是 Laravel\Sanctum\TransientToken，没有 abilities 属性，
+        // 直接访问会抛 "Undefined property" → 用 isset 安全判断后再读，否则回退 primaryStoreId()。
+        if ($token && isset($token->abilities) && is_array($token->abilities)) {
             foreach ($token->abilities as $ability) {
-                if (str_starts_with($ability, 'store:')) {
+                if (is_string($ability) && str_starts_with($ability, 'store:')) {
                     return (int) substr($ability, 6);
                 }
             }

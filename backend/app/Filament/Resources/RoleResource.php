@@ -6,6 +6,7 @@ use App\Filament\Resources\RoleResource\Pages;
 use App\Models\Permission;
 use App\Models\Role;
 use Filament\Forms;
+use Filament\Schemas;
 use Filament\Schemas\Schema;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -55,7 +56,7 @@ class RoleResource extends Resource
         foreach ($permsByModule as $module => $perms) {
             $label = static::$moduleLabels[$module] ?? $module;
 
-            $permSections[] = Forms\Components\Section::make($label)
+            $permSections[] = Schemas\Components\Section::make($label)
                 ->collapsible()
                 ->schema([
                     Forms\Components\CheckboxList::make("perm_{$module}")
@@ -80,7 +81,7 @@ class RoleResource extends Resource
 
         return $form
             ->schema([
-                Forms\Components\Section::make('基本信息')
+                Schemas\Components\Section::make('基本信息')
                     ->columns(2)
                     ->schema([
                         Forms\Components\TextInput::make('name')
@@ -107,7 +108,7 @@ class RoleResource extends Resource
                             ->rows(2),
                     ]),
 
-                Forms\Components\Section::make('权限矩阵')
+                Schemas\Components\Section::make('权限矩阵')
                     ->description('勾选该角色拥有的操作权限')
                     ->schema($permSections)
                     ->collapsible(),

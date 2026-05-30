@@ -12,6 +12,7 @@ use App\Models\PurchaseOrder;
 use App\Models\Store;
 use App\Models\Supplier;
 use Filament\Forms;
+use Filament\Schemas;
 use Filament\Schemas\Schema;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
@@ -42,7 +43,7 @@ class PurchaseOrderResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('基本信息')
+                Schemas\Components\Section::make('基本信息')
                     ->columns(2)
                     ->schema([
                         Forms\Components\Select::make('store_id')
@@ -75,7 +76,7 @@ class PurchaseOrderResource extends Resource
                             ->rows(2),
                     ]),
 
-                Forms\Components\Section::make('采购明细')
+                Schemas\Components\Section::make('采购明细')
                     ->schema([
                         Forms\Components\Repeater::make('items')
                             ->label('')
@@ -143,7 +144,7 @@ class PurchaseOrderResource extends Resource
                             ->reorderable(false),
                     ]),
 
-                Forms\Components\Section::make('金额汇总')
+                Schemas\Components\Section::make('金额汇总')
                     ->schema([
                         Forms\Components\TextInput::make('total_amount')
                             ->label('合计金额（元）')

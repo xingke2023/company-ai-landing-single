@@ -4,21 +4,29 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { inventoryApi, type InventoryItem, type InventoryTransaction } from '@/lib/api/inventory'
+import { useMiniProgram } from '@/components/back-to-chat-bar'
 
 export default function InventoryPage() {
-  const { token, isAuthenticated, loading } = useAuth()
+  const { token, isAuthenticated, loading, retry, authErrorMsg } = useAuth()
   const router = useRouter()
+  const { inMiniProgram, backToChat } = useMiniProgram()
 
   const [inventory, setInventory] = useState<InventoryItem[]>([])
   const [transactions, setTransactions] = useState<InventoryTransaction[]>([])
   const [activeTab, setActiveTab] = useState<'inventory' | 'transactions'>('inventory')
   const [fetching, setFetching] = useState(true)
+  const [authError, setAuthError] = useState(false)
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
+    // 小程序 web-view 内**不自动退回**踢人；改为显示「加载失败，点击重试」。普通浏览器才跳 /login。
+    if (loading || isAuthenticated) return
+    if (inMiniProgram) {
+      setAuthError(true)
+    } else {
       router.push('/login')
     }
-  }, [loading, isAuthenticated, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, isAuthenticated, inMiniProgram, router])
 
   useEffect(() => {
     if (!token) return
@@ -42,6 +50,26 @@ export default function InventoryPage() {
     fetchData()
   }, [token])
 
+  if (authError && !isAuthenticated) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen gap-4 px-8 text-center">
+        <p className="text-gray-500">登录态加载失败，请重试</p>
+        {authErrorMsg && (
+          <p className="text-xs text-gray-400 break-all max-w-xs">原因：{authErrorMsg}{!token && '（未收到 token）'}</p>
+        )}
+        <button
+          onClick={() => { setAuthError(false); retry() }}
+          className="bg-[#E65C46] text-white text-sm font-semibold px-8 py-2.5 rounded-full active:opacity-80"
+        >
+          点击重试
+        </button>
+        {inMiniProgram && (
+          <button onClick={backToChat} className="text-gray-400 text-sm underline">返回聊天</button>
+        )}
+      </div>
+    )
+  }
+
   if (loading || fetching) {
     return <div className="flex items-center justify-center h-screen text-gray-500">加载中...</div>
   }
@@ -51,7 +79,10 @@ export default function InventoryPage() {
       {/* 顶部导航 */}
       <div className="bg-white border-b px-4 py-3 flex items-center justify-between sticky top-0 z-10">
         <h1 className="text-lg font-semibold text-gray-800">库存管理</h1>
-        <a href="/manage" className="text-sm text-[#941100] hover:underline font-medium">AI助手 →</a>
+        {/* 小程序内不显示跳转到其它网页的链接，统一用底部「返回聊天」 */}
+        {!inMiniProgram && (
+          <a href="/manage" className="text-sm text-[#941100] hover:underline font-medium">AI助手 →</a>
+        )}
       </div>
 
       {/* Tab 切换 */}

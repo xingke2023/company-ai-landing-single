@@ -9,6 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Backend**: Laravel 13 API (PHP 8.4) — `backend/`
 - **Frontend**: Next.js 16 (React 19.2, TypeScript) — `frontend/`
 - **Admin Panel**: Filament v5 (Livewire v4) — `http://0.0.0.0:8080/admin`
+- **WeChat Mini Program**: 原生小程序（ES5 风格）— `miniprogram/`，复用同一套后端 API
 
 ---
 
@@ -115,7 +116,19 @@ npx shadcn@latest add [component-name]
 - Admin account: `admin@sjtxg.com` / `Admin@2026`
 - Demo account: `demo@example.com` / `username: demo` / `password` (no admin access)
 
-**API route middleware:** All protected routes use `auth.hybrid` (registered in `bootstrap/app.php`), which tries JWT first, then falls back to Sanctum. `store_id` is always resolved from the token — never trusted from the request body.
+**API route middleware:** All protected routes use `auth.hybrid` (`app/Http/Middleware/JwtOrSanctumAuth.php`, registered in `bootstrap/app.php`). It routes by token shape: a **JWT (token with 2 dots)** → `authenticateViaJwt` (sets `JwtAbilityToken` with an `abilities` array, store_id from JWT claims); **anything else** → `authenticateViaSanctum` → `Auth::guard('sanctum')->user()`. `store_id` is always resolved from the token via `User::resolveStoreId()` — never trusted from the request body.
+
+#### ⚠️ 重要：同源 / web-view 调用方必须用 JWT，不能用 Sanctum opaque token
+
+`paper.xingke888.com` **同时托管前端和后端**（见部署章节），所以小程序 web-view 里加载的 H5 页面对 `/api/*` 的 fetch 是**同源请求，会自动带上 cookie**。此时 Sanctum 路径 `Auth::guard('sanctum')->user()` **先查会话 guard**：若存在任何 `laravel_session` 会话 → 返回 `Laravel\Sanctum\TransientToken`（**没有 `abilities` 属性**）→ `resolveStoreId()` 访问 `$token->abilities` 抛 **`Undefined property: Laravel\Sanctum\TransientToken::$abilities`（500）**，Bearer token 被无视。
+
+**解决方案：machine/web-view 调用方一律用 `jwt_token`**。JWT 走 `authenticateViaJwt` 独立路径，**完全不碰会话 guard**，从设计上免疫该问题，store_id 直接从 JWT claims 取。
+
+- 小程序 `utils/request.js` 登录后存的就是 `res.data.jwt_token`（不是 `token`）；web-view URL 携带的也是 JWT。
+- 防御性兜底（已修，任何鉴权方式都不崩）：
+  - `User::resolveStoreId()` 用 `isset($token->abilities)` 安全判断，TransientToken 直接回退 `primaryStoreId()`。
+  - `AuthController::logout()` 只 `delete()` 真正的 `PersonalAccessToken`；JWT（`JwtAbilityToken`）/ 会话（`TransientToken`）没有 `delete()`，跳过。
+- 普通前端（`s.tianhegongyuan.com`）调 `paper.xingke888.com/api` 是**跨域**请求，默认不带 cookie，所以用 Sanctum `token` 不受影响。
 
 ### API Layer Pattern (Frontend)
 
@@ -246,6 +259,30 @@ return new Date().toISOString().slice(0, 10)
 
 ---
 
+## 微信小程序（`miniprogram/`）
+
+原生小程序，**复用 Next.js 前端用的同一套后端**。所有源码**强制 ES5 风格**（`var`/`function`，无 `let/const`/箭头函数/模板字符串/解构）——避免微信开发者工具 ES6→ES5 转译触发 `@babel/runtime` require 报错。无构建步骤；改完代码在**微信开发者工具里"清缓存→重新编译"**才生效。
+
+**后端地址**：`miniprogram/app.js` 的 `apiBaseUrl = https://paper.xingke888.com/api`。⚠️ `paper.xingke888.com` 跑的就是本仓库的舌尖后端（与 `s.xingke888.com` 同一套 `:8080`），并且也代理前端（见部署章节）。
+
+**登录（账号密码，非微信一键登录）**：
+- `utils/request.js` `login(username, password, storeId)` → `POST /login`，**存 `jwt_token`（JWT）**到 `globalData.token` + storage（**不是 Sanctum `token`**——避免 web-view 同源 cookie 触发 TransientToken 500，见上方 Authentication 章节的 ⚠️ 说明）。
+- **多门店账号**（如 admin 绑门店 3、4）不带 `store_id` 会 422 + `stores:[]` → `chat.js _doLogin` 用 `wx.showActionSheet` 弹门店选择后带 `store_id` 重登。
+- `app.js onLaunch`：**没 token 不恢复 user**（否则"假登录"——显示已登录但 token 空 → token-gated 页闪退）。`chat.js onLoad` 调 `/me` 校验缓存 token，失效则回登录表单。
+- ⚠️ Laravel 对**缺 `Accept: application/json`** 头的请求返回 **302 网页重定向**而非 422 JSON——`request.js` 固定带该头，故小程序拿到的是 JSON；手敲 curl 漏头会误判成"接口坏了"。
+
+**AI 助手**：`/ai/message`（文字 / 图片 `image_base64` 原始 base64）、`/ai/voice`（multipart 字段 `audio`）。**无 SSE 流式**。查询类 intent 的 `reply` 仅占位，真实数据在 `card_data` → `chat.js cardToMarkdown()` 渲染成 markdown 文本。
+
+**web-view 报表页**：`pages/report/report` 是**通用 web-view 容器**，按 `path`/`title` 参数加载前端 H5 页（`/inventory`、`/sales-report`…），URL 形如 `paper.xingke888.com{path}?token=<token>&from=miniapp`。从"经营查询"菜单或"今日库存/销售"的"打开完整页"链接进入。⚠️ **业务域名白名单需在微信公众平台填 `paper.xingke888.com`**，且需企业认证。
+
+**前端配合 web-view（`frontend/`）**：
+- `lib/auth-context.tsx`：URL 带 `?token=` 时自动登录（调 `authApi.me` 拿 user，再 `history.replaceState` 抹掉 token）。
+- `components/back-to-chat-bar.tsx`：`useMiniProgram()`（`{inMiniProgram, backToChat}`，靠 `?from=miniapp` 判定）+ 去抖的 `backToChat()`（`wx.miniProgram.navigateBack()`）。
+- `components/bottom-nav.tsx`：底部三段式导航（首页/聊天图标/报表）在 web-view 内中间图标变"返回聊天"，并加载微信 JSSDK `jweixin`。页面在 `from=miniapp` 时**未登录不跳 `/login`**（那会落到 Laravel 404），改为 `backToChat()`。
+- ⚠️ **Tailwind v4 的 `@layer` 在微信 web-view 老内核（安卓 X5/XWeb < Chrome 99）不被应用 → 整页无样式**。已在 `frontend/postcss.config.mjs` 加 `@csstools/postcss-cascade-layers` 把 `@layer` 拍平。改 postcss 后必须 `npm run build` + 重启 `:3113`。
+
+---
+
 ## 部署架构（生产）
 
 nginx 反向代理（`/etc/nginx/sites-available/s.xingke888.com` 等）：
@@ -254,8 +291,11 @@ nginx 反向代理（`/etc/nginx/sites-available/s.xingke888.com` 等）：
 |------|--------|------|
 | `s.xingke888.com` | `:8080` | Laravel API + Filament 后台 |
 | `s.tianhegongyuan.com` | `:3113` | Next.js 前端 |
+| `paper.xingke888.com` | `:8080` + `:3113` | 同一套后端 + 前端：`/api`,`/admin`,`/livewire`,`/filament`,`/storage`,`/sanctum`,`/up`,`/vendor`,`/css\|js\|fonts/filament` → `:8080`；其余 catch-all → `:3113`（小程序 web-view 用，前后端同源）。小程序连这个域名。 |
 
-两个域名均通过 Cloudflare 代理（橙云），SSL 证书由 Let's Encrypt 签发（`/etc/letsencrypt/live/`）。
+`s.*` 两个域名通过 Cloudflare 代理（橙云）；`paper.xingke888.com` 直连 nginx（无 Cloudflare）。SSL 证书由 Let's Encrypt 签发（`/etc/letsencrypt/live/`）。
+
+**⚠️ 重启前端 `:3113`**：`next start` 启动时一次性加载 `.next`，构建后不重启不生效。`pkill -f "next start"` 只杀父 shell，子 `next-server` 会被 init 收养继续占端口——要 `pgrep -f next-server` 找真正 PID 直接 kill，确认 `ss -ltn | grep :3113` 端口释放后再 `nohup npm run start`。
 
 **⚠️ nginx 配置修改后需以 root 执行 `nginx -t && nginx -s reload`**，非 root 执行 `nginx -t` 会因证书权限报错（误报，实际 nginx 进程可正常读取）。
 

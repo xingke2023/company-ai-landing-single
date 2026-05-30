@@ -10,6 +10,7 @@ use App\Models\SalesOrder;
 use App\Models\Store;
 use App\Models\User;
 use Filament\Forms;
+use Filament\Schemas;
 use Filament\Schemas\Schema;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
@@ -39,7 +40,7 @@ class SalesOrderResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('收银信息')
+                Schemas\Components\Section::make('收银信息')
                     ->columns(2)
                     ->schema([
                         Forms\Components\Select::make('store_id')
@@ -99,7 +100,7 @@ class SalesOrderResource extends Resource
                             ->rows(2),
                     ]),
 
-                Forms\Components\Section::make('销售明细')
+                Schemas\Components\Section::make('销售明细')
                     ->schema([
                         Forms\Components\Repeater::make('items')
                             ->label('')
@@ -171,7 +172,7 @@ class SalesOrderResource extends Resource
                             ->reorderable(false),
                     ]),
 
-                Forms\Components\Section::make('金额汇总')
+                Schemas\Components\Section::make('金额汇总')
                     ->schema([
                         Forms\Components\TextInput::make('total_amount')
                             ->label('应收金额（元）')
