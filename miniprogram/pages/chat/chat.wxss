@@ -51,10 +51,11 @@
   border-radius: 50%;
 }
 .logout-link {
-  margin-left: 16rpx;
   color: #fff;
   text-decoration: underline;
   font-size: 22rpx;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .logout-link:active { opacity: 0.6; }
 

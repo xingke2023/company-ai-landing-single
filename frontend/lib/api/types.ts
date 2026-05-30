@@ -2,9 +2,16 @@ export interface User {
   id: number;
   name: string;
   email: string;
-  email_verified_at: string | null;
-  created_at: string;
-  updated_at: string;
+  email_verified_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  // 由 /me 返回（登录响应里没有）
+  username?: string;
+  is_admin?: boolean;
+  store_id?: number | null;
+  store_name?: string | null;
+  store_address?: string | null;
+  roles?: string[];
 }
 
 export interface Post {

@@ -74,6 +74,11 @@ function me() {
   return request('/me', { method: 'GET', timeout: 15000 });
 }
 
+// 聊天页底部快捷按钮配置（后台可配）——返回 { data: [ ...quickActions ] }
+function quickActions() {
+  return request('/quick-actions', { method: 'GET', timeout: 15000 });
+}
+
 // 退出登录：尽力通知后端使 token 失效，无论成败都清掉本地登录态
 function logout() {
   return request('/logout', { method: 'POST', timeout: 10000 })
@@ -85,6 +90,7 @@ module.exports = {
   login: login,
   me: me,
   logout: logout,
+  quickActions: quickActions,
   aiMessage: aiMessage,
   aiVoice: aiVoice,
 };

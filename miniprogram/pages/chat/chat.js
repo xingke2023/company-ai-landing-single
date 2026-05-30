@@ -442,6 +442,11 @@ Page({
       },
       { key: 'weather',   emoji: '🌦️', label: '查天气', prompt: '明天天气怎么样', badge: '' },
       { key: 'help',      emoji: '💡', label: '使用说明', prompt: '你能帮我做什么', badge: '' },
+      // 仅管理员可见（user.is_admin）：经 /admin/sso 用 JWT 免登录进 Filament 后台。
+      // report.js 会把 path 拼成 paper.xingke888.com/admin/sso?token=<JWT>&from=miniapp，
+      // AdminSsoController 解 JWT→写 web session→跳 /admin。
+      { key: 'admin', emoji: '🛠️', label: '后台管理', badge: '', adminOnly: true,
+        open: { path: '/admin/sso', title: '后台管理' } },
     ],
 
     // 经营报表 — 锚定在 chip 上方的 popover
@@ -471,6 +476,7 @@ Page({
       this.setData({ user: app.globalData.user });
       this._greetLoggedIn(app.globalData.user);
       this._validateSession();
+      this._loadQuickActions();
     } else {
       this.setData({ user: null });
     }
@@ -489,6 +495,18 @@ Page({
         wx.showToast({ title: '登录已失效，请重新登录', icon: 'none' });
       }
     });
+  },
+
+  // 从后台拉取底部快捷按钮配置；失败/空则保留 data 里写死的默认数组（避免空白）
+  _loadQuickActions: function () {
+    var self = this;
+    api.quickActions().then(function (res) {
+      var list = res && res.data;
+      if (list && list.length) {
+        self.setData({ quickActions: list });
+        wx.nextTick(function () { self._recomputeMsgsHeight(); });
+      }
+    }).catch(function () { /* 保留默认按钮 */ });
   },
 
   onReady: function () {
@@ -558,6 +576,13 @@ Page({
     }
     if (action && action.items && action.items.length) {
       this._openReportMenu(action.items, key);
+      return;
+    }
+    // 带 open 配置：直接打开 web-view 页（功能聚合/我的等，不走 AI）
+    if (action && action.open) {
+      var ou = '/pages/report/report?path=' + encodeURIComponent(action.open.path);
+      if (action.open.title) { ou += '&title=' + encodeURIComponent(action.open.title); }
+      wx.navigateTo({ url: ou });
       return;
     }
     // 带 web 配置的快捷项：发 AI 文字摘要后，追加一个「打开完整页」按钮打开 web-view
@@ -896,6 +921,7 @@ Page({
       });
       wx.nextTick(function () { self._recomputeMsgsHeight(); });
       self._greetLoggedIn(app.globalData.user);
+      self._loadQuickActions();
     }).catch(function (err) {
       self.setData({ logging: false });
       wx.nextTick(function () { self._recomputeMsgsHeight(); });

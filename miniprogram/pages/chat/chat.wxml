@@ -7,9 +7,9 @@
         <view class="title">舌尖生鲜</view>
         <view class="subtitle">
           <text class="dot"></text>
-          <text wx:if="{{user}}">已登录：{{user.name}}</text>
+          <text wx:if="{{user}}">{{user.name}}</text>
           <text wx:if="{{user}}" class="logout-link" catchtap="onLogout">退出</text>
-          <text wx:else>{{logging ? '正在登录…' : '在线 · 账号登录'}}</text>
+          <text wx:else>{{logging ? '正在登录…' : '未登录'}}</text>
         </view>
       </view>
       <view class="size-toggle">
@@ -211,6 +211,7 @@
           <view
             wx:for="{{quickActions}}"
             wx:key="key"
+            wx:if="{{!item.adminOnly || (user && user.is_admin)}}"
             class="qa-chip qa-chip-{{item.key}}"
             bindtap="onQuickAction"
             data-prompt="{{item.prompt}}"

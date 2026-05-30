@@ -30,6 +30,14 @@ export function BottomNav() {
 
   if (HIDDEN_PATHS.includes(pathname)) return null
 
+  // 小程序 web-view 内：「首页」改去功能聚合页 /hub（paper 域名下 `/` 会 301 到 admin 后台），
+  // 并给所有站内链接带上 from=miniapp，保证目标页仍识别为 web-view。
+  const hrefFor = (path: string): string => {
+    if (!inMiniProgram) return path
+    const p = path === '/' ? '/hub' : path
+    return `${p}?from=miniapp`
+  }
+
   return (
     <>
       {/* 小程序 web-view 内加载微信 JSSDK，供中间聊天图标 navigateBack 返回小程序聊天页 */}
@@ -80,7 +88,7 @@ export function BottomNav() {
           return (
             <Link
               key={item.path}
-              href={item.path}
+              href={hrefFor(item.path)}
               className={`flex flex-col items-center justify-center gap-1 px-4 py-2 transition-colors ${
                 isActive ? 'text-[#941100]' : 'text-gray-400'
               }`}

@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\PurchaseOrderController;
+use App\Http\Controllers\Api\QuickActionController;
 use App\Http\Controllers\Api\ResumeController;
 use App\Http\Controllers\Api\SalesOrderController;
 use App\Http\Controllers\Api\SuggestionController;
@@ -24,6 +25,9 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth.hybrid')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+
+    // 小程序聊天页底部快捷按钮（后台可配）
+    Route::get('/quick-actions', [QuickActionController::class, 'index']);
 
     // AI 助手
     Route::post('/ai/message', [AiAssistantController::class, 'message']);

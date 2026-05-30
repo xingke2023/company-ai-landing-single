@@ -116,11 +116,10 @@ export default function SalesReportPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-
+    <div className="min-h-screen bg-gray-50 pb-20">
 
       {/* Header */}
-      <div className="bg-white border-b px-4 py-3 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+      <div className="bg-white border-b px-3 py-2 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-2">
           <button onClick={inMiniProgram ? backToChat : () => router.back()} className="text-gray-400 hover:text-gray-600 text-sm mr-1">←</button>
           <h1 className="text-base font-semibold text-gray-800">每日销售报表</h1>
@@ -134,10 +133,10 @@ export default function SalesReportPage() {
         </button>
       </div>
 
-      <div className="p-4 space-y-4 max-w-2xl mx-auto">
+      <div className="p-3 space-y-2.5 max-w-2xl mx-auto">
 
         {/* Date picker */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
+        <div className="bg-white rounded-xl border border-gray-100 p-2.5 flex items-center gap-3">
           <span className="text-sm text-gray-500 shrink-0">查询日期</span>
           <input
             type="date"
@@ -159,30 +158,30 @@ export default function SalesReportPage() {
         {report && (
           <>
             {/* Summary cards */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4 text-center">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-orange-50 border border-orange-100 rounded-xl p-2.5 text-center">
                 <p className="text-xs text-orange-400 mb-1">总销售额</p>
-                <p className="text-2xl font-bold text-orange-600 tabular-nums">¥{fmt(report.total_amount)}</p>
+                <p className="text-xl font-bold text-orange-600 tabular-nums">¥{fmt(report.total_amount)}</p>
               </div>
-              <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-center">
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-2.5 text-center">
                 <p className="text-xs text-blue-400 mb-1">销售笔数</p>
-                <p className="text-2xl font-bold text-blue-600 tabular-nums">{report.total_orders}</p>
+                <p className="text-xl font-bold text-blue-600 tabular-nums">{report.total_orders}</p>
               </div>
-              <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-center">
+              <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-2.5 text-center">
                 <p className="text-xs text-emerald-500 mb-1">总销售量</p>
-                <p className="text-2xl font-bold text-emerald-600 tabular-nums">{report.total_qty}</p>
+                <p className="text-xl font-bold text-emerald-600 tabular-nums">{report.total_qty}</p>
                 <p className="text-xs text-emerald-400">（综合单位）</p>
               </div>
-              <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4 text-center">
+              <div className="bg-purple-50 border border-purple-100 rounded-xl p-2.5 text-center">
                 <p className="text-xs text-purple-400 mb-1">品种数</p>
-                <p className="text-2xl font-bold text-purple-600 tabular-nums">{report.total_skus}</p>
+                <p className="text-xl font-bold text-purple-600 tabular-nums">{report.total_skus}</p>
               </div>
             </div>
 
             {/* Source breakdown */}
             {report.total_amount > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 p-4">
-                <p className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wide">录入来源分布</p>
+              <div className="bg-white rounded-xl border border-gray-100 p-3">
+                <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">录入来源分布</p>
                 <div className="flex rounded-lg overflow-hidden h-4 mb-3">
                   {report.source_breakdown.pos.amount > 0 && (
                     <div
@@ -228,8 +227,8 @@ export default function SalesReportPage() {
 
             {/* Payment breakdown */}
             {report.payment_breakdown.length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 p-4">
-                <p className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wide">支付方式</p>
+              <div className="bg-white rounded-xl border border-gray-100 p-3">
+                <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">支付方式</p>
                 <div className="space-y-2">
                   {report.payment_breakdown.map(p => (
                     <div key={p.method} className="flex items-center gap-2">
@@ -250,8 +249,8 @@ export default function SalesReportPage() {
             )}
 
             {/* Per-product table */}
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-              <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between">
+            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+              <div className="px-3 py-2 border-b border-gray-50 flex items-center justify-between">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">品种明细</p>
                 <p className="text-xs text-gray-300">{report.total_skus} 个品种</p>
               </div>
@@ -262,27 +261,27 @@ export default function SalesReportPage() {
                   <table className="text-xs w-full border-collapse min-w-[420px]">
                     <thead>
                       <tr className="bg-gray-50">
-                        <th className="text-left px-3 py-2.5 text-gray-400 font-medium">商品</th>
+                        <th className="text-left px-2.5 py-2 text-gray-400 font-medium">商品</th>
                         <th
-                          className="text-right px-3 py-2.5 text-gray-400 font-medium cursor-pointer select-none hover:text-blue-500"
+                          className="text-right px-2.5 py-2 text-gray-400 font-medium cursor-pointer select-none hover:text-blue-500"
                           onClick={() => toggleSort('sales_qty')}
                         >
                           销量<SortIcon k="sales_qty" />
                         </th>
                         <th
-                          className="text-right px-3 py-2.5 text-gray-400 font-medium cursor-pointer select-none hover:text-blue-500"
+                          className="text-right px-2.5 py-2 text-gray-400 font-medium cursor-pointer select-none hover:text-blue-500"
                           onClick={() => toggleSort('sales_amount')}
                         >
                           金额<SortIcon k="sales_amount" />
                         </th>
                         <th
-                          className="text-right px-3 py-2.5 text-gray-400 font-medium cursor-pointer select-none hover:text-blue-500"
+                          className="text-right px-2.5 py-2 text-gray-400 font-medium cursor-pointer select-none hover:text-blue-500"
                           onClick={() => toggleSort('avg_price')}
                         >
                           均价<SortIcon k="avg_price" />
                         </th>
                         <th
-                          className="text-right px-3 py-2.5 text-gray-400 font-medium cursor-pointer select-none hover:text-blue-500 hidden sm:table-cell"
+                          className="text-right px-2.5 py-2 text-gray-400 font-medium cursor-pointer select-none hover:text-blue-500 hidden sm:table-cell"
                           onClick={() => toggleSort('transaction_count')}
                         >
                           笔数<SortIcon k="transaction_count" />
@@ -299,7 +298,7 @@ export default function SalesReportPage() {
                               className={`cursor-pointer transition-colors ${isExpanded ? 'bg-blue-50/50' : 'hover:bg-gray-50/60'}`}
                               onClick={() => setExpandedRow(isExpanded ? null : row.product_id)}
                             >
-                              <td className="px-3 py-2.5">
+                              <td className="px-2.5 py-2">
                                 <span className="font-medium text-gray-700">{row.product_name}</span>
                                 {row.is_fresh && (
                                   <span className="ml-1 text-[10px] bg-green-100 text-green-600 px-1 rounded">鲜</span>
@@ -308,16 +307,16 @@ export default function SalesReportPage() {
                                   <span className="ml-1 text-[10px] bg-orange-100 text-orange-500 px-1 rounded">TOP</span>
                                 )}
                               </td>
-                              <td className="px-3 py-2.5 text-right tabular-nums text-gray-700">
+                              <td className="px-2.5 py-2 text-right tabular-nums text-gray-700">
                                 {row.sales_qty}<span className="text-gray-300 ml-0.5">{row.unit}</span>
                               </td>
-                              <td className="px-3 py-2.5 text-right tabular-nums font-medium text-gray-800">
+                              <td className="px-2.5 py-2 text-right tabular-nums font-medium text-gray-800">
                                 ¥{fmt(row.sales_amount)}
                               </td>
-                              <td className="px-3 py-2.5 text-right tabular-nums text-gray-500">
+                              <td className="px-2.5 py-2 text-right tabular-nums text-gray-500">
                                 {row.avg_price != null ? `¥${fmt(row.avg_price)}` : '—'}
                               </td>
-                              <td className="px-3 py-2.5 text-right tabular-nums text-gray-400 hidden sm:table-cell">
+                              <td className="px-2.5 py-2 text-right tabular-nums text-gray-400 hidden sm:table-cell">
                                 {row.transaction_count}
                               </td>
                             </tr>

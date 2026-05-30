@@ -35,5 +35,8 @@ class DatabaseSeeder extends Seeder
                 'user_id' => $user->id,
             ]);
         }
+
+        // 小程序聊天页底部快捷按钮（后台可配）
+        $this->call(QuickActionSeeder::class);
     }
 }

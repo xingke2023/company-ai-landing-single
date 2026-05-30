@@ -75,10 +75,10 @@ export default function InventoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 pb-20">
       {/* 顶部导航 */}
-      <div className="bg-white border-b px-4 py-3 flex items-center justify-between sticky top-0 z-10">
-        <h1 className="text-lg font-semibold text-gray-800">库存管理</h1>
+      <div className="bg-white border-b px-3 py-2 flex items-center justify-between sticky top-0 z-10">
+        <h1 className="text-base font-semibold text-gray-800">库存管理</h1>
         {/* 小程序内不显示跳转到其它网页的链接，统一用底部「返回聊天」 */}
         {!inMiniProgram && (
           <a href="/manage" className="text-sm text-[#941100] hover:underline font-medium">AI助手 →</a>
@@ -89,7 +89,7 @@ export default function InventoryPage() {
       <div className="bg-white border-b flex">
         <button
           onClick={() => setActiveTab('inventory')}
-          className={`flex-1 py-3 text-sm font-medium transition-colors ${
+          className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
             activeTab === 'inventory' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'
           }`}
         >
@@ -97,7 +97,7 @@ export default function InventoryPage() {
         </button>
         <button
           onClick={() => setActiveTab('transactions')}
-          className={`flex-1 py-3 text-sm font-medium transition-colors ${
+          className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
             activeTab === 'transactions' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'
           }`}
         >
@@ -105,7 +105,7 @@ export default function InventoryPage() {
         </button>
       </div>
 
-      <div className="p-4">
+      <div className="p-3">
         {activeTab === 'inventory' && (
           <>
             {inventory.length === 0 ? (
@@ -118,9 +118,9 @@ export default function InventoryPage() {
                 </a>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {inventory.map(item => (
-                  <div key={item.id} className="bg-white rounded-xl shadow-sm border p-4">
+                  <div key={item.id} className="bg-white rounded-xl shadow-sm border p-3">
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-2">
@@ -135,7 +135,7 @@ export default function InventoryPage() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold text-gray-800">
+                        <div className="text-xl font-bold text-gray-800">
                           {item.current_qty}
                           <span className="text-sm font-normal text-gray-400 ml-1">{item.unit}</span>
                         </div>
@@ -161,8 +161,8 @@ export default function InventoryPage() {
             ) : (
               <div className="space-y-2">
                 {transactions.map(tx => (
-                  <div key={tx.id} className="bg-white rounded-xl shadow-sm border px-4 py-3 flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-medium shrink-0 ${
+                  <div key={tx.id} className="bg-white rounded-xl shadow-sm border px-3 py-2 flex items-center gap-2.5">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-medium shrink-0 ${
                       tx.transaction_type === 1 || tx.transaction_type === 8 || tx.transaction_type === 6
                         ? 'bg-green-500'
                         : tx.transaction_type === 4
