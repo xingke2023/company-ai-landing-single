@@ -37,10 +37,10 @@ class Product extends Model
     protected function casts(): array
     {
         return [
-            'image_urls'  => 'array',
-            'is_fresh'    => 'boolean',
-            'min_order_qty'        => 'decimal:3',
-            'purchase_unit_qty'    => 'decimal:3',
+            'image_urls' => 'array',
+            'is_fresh' => 'boolean',
+            'min_order_qty' => 'decimal:3',
+            'purchase_unit_qty' => 'decimal:3',
         ];
     }
 
@@ -72,7 +72,7 @@ class Product extends Model
     /**
      * 按名称模糊匹配商品，找不到则自动创建。
      */
-    public static function findOrCreateByName(string $name, int $organizationId = 1): self
+    public static function findOrCreateByName(string $name, int $organizationId = 1, ?string $unit = null): self
     {
         $product = self::where('organization_id', $organizationId)
             ->where('name', 'like', '%'.$name.'%')
@@ -84,10 +84,10 @@ class Product extends Model
 
         return self::create([
             'organization_id' => $organizationId,
-            'name'            => $name,
-            'unit'            => '斤',
-            'is_fresh'        => true,
-            'status'          => 1,
+            'name' => $name,
+            'unit' => $unit ?: '斤',
+            'is_fresh' => true,
+            'status' => 1,
         ]);
     }
 }

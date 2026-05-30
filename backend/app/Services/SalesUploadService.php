@@ -162,148 +162,8 @@ PROMPT;
                 return;
             }
 
-            // 3. 写入数据库
-            $storeId = $upload->store_id;
-            $saleDate = $upload->sale_date->toDateString();
-            $occurredAt = Carbon::parse($saleDate.' '.now()->format('H:i:s'));
-
-            $processed = 0;
-            $failed = 0;
-
-            foreach ($items as $item) {
-                $productName = trim((string) ($item['product_name'] ?? ''));
-                $qty = (float) ($item['qty'] ?? 0);
-                $amount = (float) ($item['amount'] ?? 0);
-                $unit = trim((string) ($item['unit'] ?? '斤')) ?: '斤';
-
-                if ($productName === '' || $qty <= 0) {
-                    $failed++;
-
-                    continue;
-                }
-
-                try {
-                    DB::transaction(function () use (
-                        $storeId, $productName, $qty, $amount, $unit,
-                        $saleDate, $occurredAt, $operatorId, $upload
-                    ): void {
-                        // 找到或创建商品
-                        $product = Product::findOrCreateByName($productName);
-                        if ($product->unit === '斤' && $unit !== '斤') {
-                            $product->update(['unit' => $unit]);
-                        }
-
-                        $productId = $product->id;
-                        $unitPrice = $qty > 0 ? round($amount / $qty, 4) : 0;
-
-                        // 创建销售单（补录）
-                        $salesOrder = SalesOrder::create([
-                            'store_id' => $storeId,
-                            'order_no' => 'UPL-'.now()->format('Ymd').'-'.strtoupper(Str::random(6)),
-                            'cashier_id' => null,
-                            'total_amount' => $amount,
-                            'discount_amount' => 0,
-                            'paid_amount' => $amount,
-                            'payment_method' => 1,
-                            'status' => 1,
-                            'sold_at' => $occurredAt,
-                            'notes' => '[汇总上传] '.$upload->original_filename,
-                        ]);
-
-                        SalesOrderItem::create([
-                            'sales_order_id' => $salesOrder->id,
-                            'product_id' => $productId,
-                            'qty' => $qty,
-                            'unit_price' => $unitPrice,
-                            'discount_amount' => 0,
-                            'subtotal' => $amount,
-                            'cost_price' => null,
-                        ]);
-
-                        // 更新库存
-                        $inventory = Inventory::firstOrCreate(
-                            ['store_id' => $storeId, 'product_id' => $productId],
-                            ['current_qty' => 0, 'available_qty' => 0, 'locked_qty' => 0],
-                        );
-
-                        $qtyBefore = (float) $inventory->current_qty;
-                        $qtyAfter = max(0, $qtyBefore - $qty);
-                        $qtyChange = $qtyAfter - $qtyBefore;
-
-                        InventoryTransaction::create([
-                            'store_id' => $storeId,
-                            'product_id' => $productId,
-                            'transaction_type' => 2,
-                            'qty_change' => $qtyChange,
-                            'qty_before' => $qtyBefore,
-                            'qty_after' => $qtyAfter,
-                            'operator_id' => $operatorId,
-                            'notes' => '[汇总上传] '.$upload->original_filename,
-                            'created_at' => $occurredAt,
-                        ]);
-
-                        $inventory->update([
-                            'current_qty' => $qtyAfter,
-                            'available_qty' => $qtyAfter,
-                            'last_out_at' => $occurredAt,
-                            'last_sold_at' => $occurredAt,
-                        ]);
-
-                        // 更新每日快照
-                        InventoryDailySnapshot::record(
-                            storeId: $storeId,
-                            productId: $productId,
-                            qtyBefore: $qtyBefore,
-                            qtyChange: $qtyChange,
-                            qtyAfter: $qtyAfter,
-                            transactionType: 2,
-                            date: $saleDate,
-                            occurredAt: $occurredAt,
-                        );
-
-                        // 更新每日销售汇总
-                        $summary = SalesDailySummary::firstOrCreate(
-                            ['store_id' => $storeId, 'product_id' => $productId, 'sale_date' => $saleDate],
-                            ['sales_qty' => 0, 'sales_amount' => 0, 'transaction_count' => 0],
-                        );
-                        $newQty = (float) $summary->sales_qty + $qty;
-                        $newAmount = (float) $summary->sales_amount + $amount;
-                        $summary->update([
-                            'sales_qty' => $newQty,
-                            'sales_amount' => $newAmount,
-                            'transaction_count' => $summary->transaction_count + 1,
-                            'avg_selling_price' => $newQty > 0 ? round($newAmount / $newQty, 4) : null,
-                        ]);
-                    });
-
-                    $processed++;
-                } catch (\Throwable $e) {
-                    Log::warning('SalesUpload item failed', [
-                        'upload_id' => $upload->id,
-                        'product_name' => $productName,
-                        'error' => $e->getMessage(),
-                    ]);
-                    $failed++;
-                }
-            }
-
-            // 4. 写操作日志
-            DailyOperationLog::write(
-                storeId: $storeId,
-                content: "Excel汇总上传：{$upload->original_filename}，处理 {$processed} 条，失败 {$failed} 条",
-                intent: 'sale_report',
-                source: 2,
-                isOperational: true,
-                operatorId: $operatorId,
-                occurredAt: $occurredAt,
-            );
-
-            $upload->update([
-                'status' => $processed > 0 ? SalesUpload::STATUS_COMPLETED : SalesUpload::STATUS_FAILED,
-                'processed_items' => $processed,
-                'failed_items' => $failed,
-                'error_message' => $failed > 0 ? "共 {$failed} 条未能处理" : null,
-            ]);
+            // 3. 写入数据库（复用统一写入逻辑）
+            $this->writeRecognizedItems($upload, $items, $operatorId);
         } catch (\Throwable $e) {
             Log::error('SalesUpload processUpload failed', ['upload_id' => $upload->id, 'error' => $e->getMessage()]);
             $upload->update([
@@ -311,5 +171,242 @@ PROMPT;
                 'error_message' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * 从图片识别销售明细 —— 用视觉模型（ai.vision_*，gemini-3-flash-preview）。
+     * 注意：deepseek-v4-pro 不支持图片输入（image_url 会返回 400），故图片识别走视觉模型，
+     * 与 AiService 图片意图识别一致；Excel/文字才走 deepseek。
+     *
+     * @return array{items: array, summary: string}
+     */
+    public function recognizeFromImage(string $imageBase64): array
+    {
+        $systemPrompt = <<<'PROMPT'
+你是生鲜门店AI数据识别助手（舌尖香港）。
+用户会上传一张门店销售记录的图片：可能是收银小票、销售汇总表、Excel截图，或店长手写的销售清单。
+请逐项识别图中每个商品的：品名/商品名、销售数量、销售金额。
+
+要求：
+1. 只识别真实的商品销售行；忽略表头、合计/小计/总计行、店名、日期、二维码等非商品信息。
+2. 数量与金额必须是数字（正数）。金额若图中没有则填 0。
+3. 单位若图中有则填写（如"斤/个/件/盒"），否则默认"斤"。
+4. 模糊不清、无法确定品名或数量的行，跳过，不要臆造。
+
+严格只返回以下JSON，不要输出任何额外文字：
+{
+  "items": [
+    { "product_name": "商品名称", "qty": 数字, "amount": 数字, "unit": "单位" }
+  ],
+  "summary": "简短说明：共识别X个商品，以及识别到的图片类型"
+}
+PROMPT;
+
+        $response = Http::baseUrl(config('ai.vision_base_url'))
+            ->withToken(config('ai.vision_api_key'))
+            ->timeout(120)
+            ->post('/chat/completions', [
+                'model' => config('ai.vision_model'),
+                'messages' => [
+                    ['role' => 'system', 'content' => $systemPrompt],
+                    ['role' => 'user', 'content' => [
+                        ['type' => 'text', 'text' => '这是一张门店销售记录图片，请识别其中每个商品的销售数量和金额。'],
+                        ['type' => 'image_url', 'image_url' => ['url' => 'data:image/jpeg;base64,'.$imageBase64]],
+                    ]],
+                ],
+                'temperature' => 0.1,
+                'response_format' => ['type' => 'json_object'],
+            ]);
+
+        if ($response->failed()) {
+            Log::error('SalesUpload image AI failed', ['status' => $response->status(), 'body' => $response->body()]);
+
+            return ['items' => [], 'summary' => 'AI识别失败（'.$response->status().'）'];
+        }
+
+        $content = $response->json('choices.0.message.content', '{}');
+        $parsed = json_decode($content, true);
+
+        if (! is_array($parsed) || empty($parsed['items'])) {
+            return ['items' => [], 'summary' => (is_array($parsed) ? ($parsed['summary'] ?? '') : '') ?: '无法从图片中识别有效销售数据'];
+        }
+
+        return $parsed;
+    }
+
+    /**
+     * 从 Excel 识别销售明细（解析 + 文字 AI）。
+     *
+     * @return array{items: array, summary: string, raw_rows: array}
+     */
+    public function recognizeFromExcel(string $storagePath): array
+    {
+        $rows = $this->parseExcel($storagePath);
+        if (empty($rows)) {
+            return ['items' => [], 'summary' => 'Excel文件为空或格式不正确', 'raw_rows' => []];
+        }
+
+        $aiResult = $this->analyzeWithAi($rows);
+
+        return [
+            'items' => $aiResult['items'] ?? [],
+            'summary' => $aiResult['summary'] ?? '',
+            'raw_rows' => $rows,
+        ];
+    }
+
+    /**
+     * 把识别（并经店长核对）的 items 写入为今日销售补录：
+     * 销售单 + 销售明细 + 扣库存 + 流水(type=2) + 每日快照 + 每日销售汇总 + 操作日志。
+     * 被 Excel 后台流程(processUpload) 与小程序两步 API(commit) 共用。
+     *
+     * @param  array<int, array{product_name?:string, qty?:mixed, amount?:mixed, unit?:string}>  $items
+     * @return array{processed: int, failed: int}
+     */
+    public function writeRecognizedItems(SalesUpload $upload, array $items, int $operatorId): array
+    {
+        $storeId = $upload->store_id;
+        $saleDate = $upload->sale_date->toDateString();
+        $occurredAt = Carbon::parse($saleDate.' '.now()->format('H:i:s'));
+
+        $processed = 0;
+        $failed = 0;
+
+        foreach ($items as $item) {
+            $productName = trim((string) ($item['product_name'] ?? ''));
+            $qty = (float) ($item['qty'] ?? 0);
+            $amount = (float) ($item['amount'] ?? 0);
+            $unit = trim((string) ($item['unit'] ?? '斤')) ?: '斤';
+
+            if ($productName === '' || $qty <= 0) {
+                $failed++;
+
+                continue;
+            }
+
+            try {
+                DB::transaction(function () use (
+                    $storeId, $productName, $qty, $amount, $unit,
+                    $saleDate, $occurredAt, $operatorId, $upload
+                ): void {
+                    // 找到或创建商品
+                    $product = Product::findOrCreateByName($productName, 1, $unit);
+                    if ($product->unit === '斤' && $unit !== '斤') {
+                        $product->update(['unit' => $unit]);
+                    }
+
+                    $productId = $product->id;
+                    $unitPrice = $qty > 0 ? round($amount / $qty, 4) : 0;
+
+                    // 创建销售单（补录）
+                    $salesOrder = SalesOrder::create([
+                        'store_id' => $storeId,
+                        'order_no' => 'UPL-'.now()->format('Ymd').'-'.strtoupper(Str::random(6)),
+                        'cashier_id' => null,
+                        'total_amount' => $amount,
+                        'discount_amount' => 0,
+                        'paid_amount' => $amount,
+                        'payment_method' => 1,
+                        'status' => 1,
+                        'sold_at' => $occurredAt,
+                        'notes' => '[销售上传] '.$upload->original_filename,
+                    ]);
+
+                    SalesOrderItem::create([
+                        'sales_order_id' => $salesOrder->id,
+                        'product_id' => $productId,
+                        'qty' => $qty,
+                        'unit_price' => $unitPrice,
+                        'discount_amount' => 0,
+                        'subtotal' => $amount,
+                        'cost_price' => null,
+                    ]);
+
+                    // 更新库存
+                    $inventory = Inventory::firstOrCreate(
+                        ['store_id' => $storeId, 'product_id' => $productId],
+                        ['current_qty' => 0, 'available_qty' => 0, 'locked_qty' => 0],
+                    );
+
+                    $qtyBefore = (float) $inventory->current_qty;
+                    $qtyAfter = max(0, $qtyBefore - $qty);
+                    $qtyChange = $qtyAfter - $qtyBefore;
+
+                    InventoryTransaction::create([
+                        'store_id' => $storeId,
+                        'product_id' => $productId,
+                        'transaction_type' => 2,
+                        'qty_change' => $qtyChange,
+                        'qty_before' => $qtyBefore,
+                        'qty_after' => $qtyAfter,
+                        'operator_id' => $operatorId,
+                        'notes' => '[销售上传] '.$upload->original_filename,
+                        'created_at' => $occurredAt,
+                    ]);
+
+                    $inventory->update([
+                        'current_qty' => $qtyAfter,
+                        'available_qty' => $qtyAfter,
+                        'last_out_at' => $occurredAt,
+                        'last_sold_at' => $occurredAt,
+                    ]);
+
+                    // 更新每日快照
+                    InventoryDailySnapshot::record(
+                        storeId: $storeId,
+                        productId: $productId,
+                        qtyBefore: $qtyBefore,
+                        qtyChange: $qtyChange,
+                        qtyAfter: $qtyAfter,
+                        transactionType: 2,
+                        date: $saleDate,
+                        occurredAt: $occurredAt,
+                    );
+
+                    // 更新每日销售汇总
+                    $summary = SalesDailySummary::firstOrCreate(
+                        ['store_id' => $storeId, 'product_id' => $productId, 'sale_date' => $saleDate],
+                        ['sales_qty' => 0, 'sales_amount' => 0, 'transaction_count' => 0],
+                    );
+                    $newQty = (float) $summary->sales_qty + $qty;
+                    $newAmount = (float) $summary->sales_amount + $amount;
+                    $summary->update([
+                        'sales_qty' => $newQty,
+                        'sales_amount' => $newAmount,
+                        'transaction_count' => $summary->transaction_count + 1,
+                        'avg_selling_price' => $newQty > 0 ? round($newAmount / $newQty, 4) : null,
+                    ]);
+                });
+
+                $processed++;
+            } catch (\Throwable $e) {
+                Log::warning('SalesUpload item failed', [
+                    'upload_id' => $upload->id,
+                    'product_name' => $productName,
+                    'error' => $e->getMessage(),
+                ]);
+                $failed++;
+            }
+        }
+
+        // 写操作日志
+        DailyOperationLog::write(
+            storeId: $storeId,
+            content: "销售报表上传：{$upload->original_filename}，处理 {$processed} 条，失败 {$failed} 条",
+            intent: 'sale_report',
+            source: 2,
+            isOperational: true,
+            operatorId: $operatorId,
+            occurredAt: $occurredAt,
+        );
+
+        $upload->update([
+            'status' => $processed > 0 ? SalesUpload::STATUS_COMPLETED : SalesUpload::STATUS_FAILED,
+            'processed_items' => $processed,
+            'failed_items' => $failed,
+            'error_message' => $failed > 0 ? "共 {$failed} 条未能处理" : null,
+        ]);
+
+        return ['processed' => $processed, 'failed' => $failed];
     }
 }

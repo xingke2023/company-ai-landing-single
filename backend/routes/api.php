@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\QuickActionController;
 use App\Http\Controllers\Api\ResumeController;
 use App\Http\Controllers\Api\SalesOrderController;
+use App\Http\Controllers\Api\SalesUploadController;
 use App\Http\Controllers\Api\SuggestionController;
 use App\Http\Controllers\Api\SupplierRefundClaimController;
 use App\Http\Controllers\Api\WeatherController;
@@ -53,6 +54,9 @@ Route::middleware('auth.hybrid')->group(function () {
     Route::get('/sales/summary', [SalesOrderController::class, 'summary']);
     Route::get('/sales/report', [SalesOrderController::class, 'dailyReport']);
     Route::post('/sales/supplement', [SalesOrderController::class, 'supplement']);
+    // 销售报表上传（拍照/相册/文件 → AI 识别 → 预览 → 确认入库）
+    Route::post('/sales/upload/recognize', [SalesUploadController::class, 'recognize']);
+    Route::post('/sales/upload/{id}/commit', [SalesUploadController::class, 'commit']);
     Route::apiResource('/sales', SalesOrderController::class)->only(['index', 'store', 'show']);
 
     // 商品
@@ -71,6 +75,7 @@ Route::middleware('auth.hybrid')->group(function () {
 
     // 损耗记录
     Route::get('/damage/stats', [DamageController::class, 'stats']);
+    Route::post('/damage/batch', [DamageController::class, 'storeBatch']);
     Route::post('/damage/{id}/images', [DamageController::class, 'uploadImages']);
     Route::apiResource('/damage', DamageController::class)->only(['index', 'store']);
 

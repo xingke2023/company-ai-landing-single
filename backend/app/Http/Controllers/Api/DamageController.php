@@ -10,6 +10,7 @@ use App\Models\InventoryDailySnapshot;
 use App\Models\InventoryTransaction;
 use App\Models\Product;
 use App\Models\PurchaseOrderItem;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +29,7 @@ class DamageController extends Controller
         $data = $request->validate([
             'product_name' => 'required|string|max:100',
             'qty' => 'required|numeric|min:0.001',
+            'unit' => 'nullable|string|max:10',
             'reason' => 'required|string|max:100',
             'notes' => 'nullable|string|max:500',
             'occurred_at' => 'nullable|date',
@@ -41,13 +43,79 @@ class DamageController extends Controller
             return response()->json(['message' => '该账号未关联任何门店'], 403);
         }
 
+        $record = $this->recordDamage($data, $storeId, $request->user());
+
+        return response()->json([
+            'message' => '损耗记录已保存',
+            'data' => $record->load('product:id,name,unit', 'supplier:id,name'),
+        ], 201);
+    }
+
+    /**
+     * 批量录入损耗（小程序「损耗记录」原生页：连录多条 + 统一确认提交）。
+     * 逐条 best-effort 写入，单条失败不影响其它条（参照 /resumes/batch 风格）。
+     * store_id / operator_id 始终取自上报人 token，绝不信请求体。
+     *
+     * POST /api/damage/batch
+     */
+    public function storeBatch(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'items' => 'required|array|min:1|max:20',
+            'items.*.product_name' => 'required|string|max:100',
+            'items.*.qty' => 'required|numeric|min:0.001',
+            'items.*.unit' => 'nullable|string|max:10',
+            'items.*.reason' => 'required|string|max:100',
+            'items.*.notes' => 'nullable|string|max:500',
+            'items.*.occurred_at' => 'nullable|date',
+            'items.*.image_base64' => 'nullable|array|max:5',
+            'items.*.image_base64.*' => 'nullable|string',
+        ]);
+
+        $storeId = $request->user()->resolveStoreId();
+        if (! $storeId) {
+            return response()->json(['message' => '该账号未关联任何门店'], 403);
+        }
+
+        $user = $request->user();
+        $records = [];
+        $errors = [];
+
+        foreach ($validated['items'] as $index => $item) {
+            try {
+                $records[] = $this->recordDamage($item, $storeId, $user)
+                    ->load('product:id,name,unit', 'supplier:id,name');
+            } catch (\Throwable $e) {
+                $errors[] = ['index' => $index, 'message' => $e->getMessage()];
+            }
+        }
+
+        return response()->json([
+            'message' => '损耗批量录入完成',
+            'total' => count($validated['items']),
+            'success' => count($records),
+            'failed' => count($errors),
+            'records' => $records,
+            'errors' => $errors,
+        ], $errors ? 207 : 201);
+    }
+
+    /**
+     * 单条损耗写链（扣库存 + 流水 + 快照 + 自动溯源供应商/算索赔 + 操作日志 + DamageRecord）。
+     * 被 store() 与 storeBatch() 共用。
+     *
+     * @param  array{product_name:string,qty:numeric,reason:string,notes?:?string,occurred_at?:?string,image_base64?:?array,purchase_order_item_id?:?int}  $data
+     */
+    private function recordDamage(array $data, int $storeId, User $user): DamageRecord
+    {
         $occurredAt = isset($data['occurred_at']) ? now()->parse($data['occurred_at']) : now();
 
-        // 保存图片
+        // 保存图片（事务外，避免长事务持图）
         $imagePaths = $this->saveBase64Images($data['image_base64'] ?? [], $storeId, $occurredAt->toDateString());
 
-        $record = DB::transaction(function () use ($data, $storeId, $occurredAt, $imagePaths, $request) {
-            $product = Product::findOrCreateByName($data['product_name']);
+        return DB::transaction(function () use ($data, $storeId, $occurredAt, $imagePaths, $user) {
+            // 录入时填了单位（如"个/件/斤"）→ 新建商品时带上；已存在商品保留其原单位
+            $product = Product::findOrCreateByName($data['product_name'], 1, $data['unit'] ?? null);
 
             $inventory = Inventory::firstOrCreate(
                 ['store_id' => $storeId, 'product_id' => $product->id],
@@ -67,8 +135,8 @@ class DamageController extends Controller
                 'qty_change' => $qtyChange,
                 'qty_before' => $qtyBefore,
                 'qty_after' => $qtyAfter,
-                'operator_id' => $request->user()->id,
-                'notes' => $data['reason'].($data['notes'] ? '：'.$data['notes'] : ''),
+                'operator_id' => $user->id,
+                'notes' => $data['reason'].(! empty($data['notes']) ? '：'.$data['notes'] : ''),
                 'created_at' => $occurredAt,
             ]);
 
@@ -125,7 +193,7 @@ class DamageController extends Controller
                 isOperational: true,
                 productId: $product->id,
                 qtyChange: $qtyChange,
-                operatorId: $request->user()->id,
+                operatorId: $user->id,
                 occurredAt: $occurredAt,
             );
 
@@ -141,15 +209,10 @@ class DamageController extends Controller
                 'image_paths' => $imagePaths ?: null,
                 'status' => 1,
                 'occurred_at' => $occurredAt,
-                'operator_id' => $request->user()->id,
+                'operator_id' => $user->id,
                 'notes' => $data['notes'] ?? null,
             ]);
         });
-
-        return response()->json([
-            'message' => '损耗记录已保存',
-            'data' => $record->load('product:id,name,unit', 'supplier:id,name'),
-        ], 201);
     }
 
     /**

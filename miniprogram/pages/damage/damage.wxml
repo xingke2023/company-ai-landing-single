@@ -1,0 +1,145 @@
+<view class="root">
+  <!-- Header -->
+  <view class="header" style="padding-top: {{statusBarHeight}}px;">
+    <view class="header-inner">
+      <view class="back-btn" bindtap="onBack">‹</view>
+      <view class="header-title">损耗记录</view>
+      <view class="header-spacer"></view>
+    </view>
+  </view>
+
+  <scroll-view class="body" scroll-y="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
+
+    <!-- ───────── 录入阶段 ───────── -->
+    <block wx:if="{{stage === 'edit'}}">
+      <!-- 今日已记录 -->
+      <view class="today-card">
+        <view class="today-head">
+          <text class="today-title">今日已记录</text>
+          <text class="today-count">{{todayRecords.length}} 条</text>
+        </view>
+        <view wx:if="{{todayLoading}}" class="today-empty">加载中…</view>
+        <view wx:elif="{{!todayRecords.length}}" class="today-empty">今天还没有损耗记录</view>
+        <block wx:else>
+          <view wx:for="{{todayRecords}}" wx:key="id" class="trec">
+            <view class="trec-row">
+              <view class="trec-title">{{item.name}} · {{item.qty}}{{item.unit}}</view>
+              <text wx:if="{{item.time}}" class="trec-time">{{item.time}}</text>
+            </view>
+            <view class="trec-sub">
+              <text class="trec-reason">{{item.reason}}</text>
+              <text wx:if="{{item.statusLabel}}" class="trec-status">{{item.statusLabel}}</text>
+              <text wx:if="{{item.notes}}" class="trec-notes">{{item.notes}}</text>
+            </view>
+            <view wx:if="{{item.photos.length}}" class="trec-photos">
+              <image wx:for="{{item.photos}}" wx:for-item="ph" wx:key="*this"
+                class="trec-thumb" src="{{ph}}" mode="aspectFill"
+                data-url="{{ph}}" data-urls="{{item.photos}}" catchtap="onPreviewTodayPhoto" />
+            </view>
+          </view>
+        </block>
+      </view>
+
+      <view class="section-head">新增损耗</view>
+      <view class="tip">拍照称重后逐条录入，可连录多条，最后统一确认提交。</view>
+
+      <!-- 录入表单卡片 -->
+      <view class="card">
+        <view class="field">
+          <text class="field-label">商品名 <text class="req">*</text></text>
+          <input class="field-input" placeholder="如：番茄 / 大白菜" placeholder-class="ph"
+            value="{{form.product_name}}" bindinput="onProductInput" confirm-type="next" />
+        </view>
+
+        <view class="field">
+          <text class="field-label">数量 / 重量 <text class="req">*</text></text>
+          <input class="field-input" placeholder="如 3斤 / 5个 / 2件" placeholder-class="ph"
+            value="{{form.qty}}" bindinput="onQtyInput" />
+        </view>
+
+        <view class="field">
+          <text class="field-label">损耗原因 <text class="req">*</text></text>
+          <view class="chips">
+            <view wx:for="{{reasons}}" wx:key="*this"
+              class="chip {{form.reason === item ? 'chip-on' : ''}}"
+              data-reason="{{item}}" bindtap="onPickReason">{{item}}</view>
+          </view>
+          <input wx:if="{{form.reason === '其他'}}" class="field-input custom-reason"
+            placeholder="请填写具体原因" placeholder-class="ph"
+            value="{{form.customReason}}" bindinput="onCustomReasonInput" />
+        </view>
+
+        <view class="field">
+          <text class="field-label">备注（选填）</text>
+          <input class="field-input" placeholder="如：整箱受潮 / 供应商XX" placeholder-class="ph"
+            value="{{form.notes}}" bindinput="onNotesInput" />
+        </view>
+
+        <view class="field">
+          <text class="field-label">照片（选填，最多3张）</text>
+          <view class="photo-grid">
+            <view wx:for="{{form.photos}}" wx:key="index" class="photo-item">
+              <image class="photo-thumb" src="{{item.tempPath}}" mode="aspectFill"
+                data-index="{{index}}" bindtap="onPreviewPhoto" />
+              <view class="photo-del" data-index="{{index}}" catchtap="onRemovePhoto">×</view>
+            </view>
+            <view wx:if="{{form.photos.length < 3}}" class="photo-add" bindtap="onPickPhoto">
+              <text class="photo-add-plus">＋</text>
+              <text class="photo-add-text">拍照</text>
+            </view>
+          </view>
+        </view>
+
+        <button class="btn-add" bindtap="onAddDraft">添加到清单</button>
+      </view>
+
+      <!-- 已添加清单 -->
+      <view wx:if="{{drafts.length}}" class="list-head">待提交清单（{{drafts.length}} 条）</view>
+      <view wx:for="{{drafts}}" wx:key="index" class="draft">
+        <view class="draft-main">
+          <view class="draft-title">{{item.product_name}} · {{item.amountText}}</view>
+          <view class="draft-sub">
+            <text class="draft-reason">{{item.reason}}</text>
+            <text wx:if="{{item.photos.length}}" class="draft-photos">📷{{item.photos.length}}</text>
+            <text wx:if="{{item.notes}}" class="draft-notes">{{item.notes}}</text>
+          </view>
+        </view>
+        <view class="draft-acts">
+          <text class="draft-edit" data-index="{{index}}" bindtap="onEditDraft">编辑</text>
+          <text class="draft-remove" data-index="{{index}}" bindtap="onRemoveDraft">删除</text>
+        </view>
+      </view>
+    </block>
+
+    <!-- ───────── 确认阶段 ───────── -->
+    <block wx:else>
+      <view class="tip">请核对以下 {{drafts.length}} 条损耗，确认无误后提交。</view>
+      <view wx:for="{{drafts}}" wx:key="index" class="confirm-item">
+        <view class="confirm-idx">{{index + 1}}</view>
+        <view class="confirm-body">
+          <view class="confirm-title">{{item.product_name}} · {{item.amountText}}</view>
+          <view class="confirm-row">原因：{{item.reason}}</view>
+          <view wx:if="{{item.notes}}" class="confirm-row">备注：{{item.notes}}</view>
+          <view class="confirm-row confirm-time">时间：{{item.occurred_at}}</view>
+          <view wx:if="{{item.photos.length}}" class="confirm-photos">
+            <image wx:for="{{item.photos}}" wx:for-item="ph" wx:key="index"
+              class="confirm-thumb" src="{{ph.tempPath}}" mode="aspectFill" />
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <view class="bottom-pad"></view>
+  </scroll-view>
+
+  <!-- 底部操作条 -->
+  <view class="footer">
+    <block wx:if="{{stage === 'edit'}}">
+      <button class="btn-primary" bindtap="onGoConfirm">去确认（{{drafts.length}} 条）</button>
+    </block>
+    <block wx:else>
+      <button class="btn-ghost" bindtap="onBackToEdit">返回修改</button>
+      <button class="btn-primary btn-flex" bindtap="onSubmit" disabled="{{submitting}}">确认提交</button>
+    </block>
+  </view>
+</view>

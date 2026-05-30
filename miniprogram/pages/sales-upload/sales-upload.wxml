@@ -1,0 +1,76 @@
+<view class="root">
+  <!-- Header -->
+  <view class="header" style="padding-top: {{statusBarHeight}}px;">
+    <view class="header-inner">
+      <view class="back-btn" bindtap="onBack">‹</view>
+      <view class="header-title">上传销售报表</view>
+      <view class="header-spacer"></view>
+    </view>
+  </view>
+
+  <scroll-view class="body" scroll-y="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
+
+    <!-- ───────── 选择上传方式 ───────── -->
+    <block wx:if="{{stage === 'pick'}}">
+      <view class="tip">选择一种方式上传当日销售记录，AI 识别后可核对再入库，作为今日销售的补充。</view>
+
+      <view class="pick-panel">
+        <view class="plus-grid">
+          <view class="plus-item" bindtap="onCamera">
+            <view class="plus-icon"><image class="plus-icon-svg" src="{{icons.camera}}" mode="aspectFit" /></view>
+            <text class="plus-label">拍照</text>
+          </view>
+          <view class="plus-item" bindtap="onAlbum">
+            <view class="plus-icon"><image class="plus-icon-svg" src="{{icons.album}}" mode="aspectFit" /></view>
+            <text class="plus-label">相册</text>
+          </view>
+          <view class="plus-item" bindtap="onFile">
+            <view class="plus-icon"><image class="plus-icon-svg" src="{{icons.file}}" mode="aspectFit" /></view>
+            <text class="plus-label">文件</text>
+          </view>
+        </view>
+        <view class="pick-hint">支持销售小票 / 手写清单照片，或 Excel·CSV 导出表</view>
+      </view>
+    </block>
+
+    <!-- ───────── 识别结果核对 ───────── -->
+    <block wx:else>
+      <view wx:if="{{summary}}" class="summary">🤖 {{summary}}</view>
+      <view class="review-head">
+        <text>识别明细 · {{items.length}} 条</text>
+        <text class="review-date">销售日期 {{saleDate}}</text>
+      </view>
+
+      <view class="tbl">
+        <view class="tbl-h">
+          <text class="c-name">名称</text>
+          <text class="c-qty">数量</text>
+          <text class="c-unit">单位</text>
+          <text class="c-amt">金额¥</text>
+          <text class="c-del"></text>
+        </view>
+        <view wx:for="{{items}}" wx:key="index" class="tbl-r">
+          <input class="c-name cell" placeholder="商品名" placeholder-class="ph"
+            value="{{item.product_name}}" data-index="{{index}}" data-field="product_name" bindinput="onItemInput" />
+          <input class="c-qty cell cell-num" type="digit" placeholder="0" placeholder-class="ph"
+            value="{{item.qty}}" data-index="{{index}}" data-field="qty" bindinput="onItemInput" />
+          <input class="c-unit cell" placeholder="斤" placeholder-class="ph"
+            value="{{item.unit}}" data-index="{{index}}" data-field="unit" bindinput="onItemInput" />
+          <input class="c-amt cell cell-num" type="digit" placeholder="0" placeholder-class="ph"
+            value="{{item.amount}}" data-index="{{index}}" data-field="amount" bindinput="onItemInput" />
+          <view class="c-del del" data-index="{{index}}" bindtap="onRemoveItem">✕</view>
+        </view>
+      </view>
+
+      <view class="add-row" bindtap="onAddRow">＋ 手动加一行</view>
+    </block>
+
+    <view class="bottom-pad"></view>
+  </scroll-view>
+
+  <!-- 底部操作条 -->
+  <view wx:if="{{stage === 'review'}}" class="footer">
+    <button class="btn-ghost" bindtap="onReUpload">重新上传</button>
+    <button class="btn-primary btn-flex" bindtap="onConfirm" disabled="{{submitting}}">确认入库（{{items.length}}）</button>
+  </view>
+</view>

@@ -1,7 +1,9 @@
 {
   "pages": [
     "pages/chat/chat",
-    "pages/report/report"
+    "pages/report/report",
+    "pages/damage/damage",
+    "pages/sales-upload/sales-upload"
   ],
   "window": {
     "navigationStyle": "custom",

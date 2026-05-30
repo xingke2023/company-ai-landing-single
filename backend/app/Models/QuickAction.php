@@ -83,10 +83,15 @@ class QuickAction extends Model
                 ];
                 break;
 
+            case 'route':
+                // 直接 wx.navigateTo 到小程序原生页（区别于 'open' 走 web-view 容器）
+                $node['route'] = $this->target_path;
+                break;
+
             case 'menu':
                 $node['items'] = $this->items->map(function (QuickActionItem $item) {
                     $sub = [
-                        'key' => 'qai-' . $item->id,
+                        'key' => 'qai-'.$item->id,
                         'emoji' => $item->emoji ?? '',
                         'label' => $item->label,
                         'desc' => $item->desc ?? '',
@@ -96,6 +101,7 @@ class QuickAction extends Model
                     } else {
                         $sub['prompt'] = $item->prompt ?? '';
                     }
+
                     return $sub;
                 })->all();
                 break;

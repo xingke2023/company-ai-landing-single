@@ -430,8 +430,15 @@ Page({
     quickActions: [
       { key: 'inventory', emoji: '📦', label: '今日库存', prompt: '查一下今日库存', badge: '',
         web: { path: '/inventory', title: '今日库存', label: '📦 打开完整库存页' } },
-      { key: 'sales',     emoji: '💰', label: '今日销售', prompt: '今天卖了多少', badge: '',
-        web: { path: '/sales-report', title: '今日销售', label: '📊 打开销售报表' } },
+      {
+        key: 'sales', emoji: '💰', label: '今日销售', badge: '',
+        items: [
+          { key: 'sales-stat',   emoji: '📊', label: '销售统计',     desc: '每日销售报表', route: '/pages/report/report?path=%2Fsales-report&title=%E9%94%80%E5%94%AE%E7%BB%9F%E8%AE%A1' },
+          { key: 'sales-upload', emoji: '📤', label: '上传销售报表', desc: '拍照/相册/文件 AI 识别入库', route: '/pages/sales-upload/sales-upload' },
+        ],
+      },
+      { key: 'damage',    emoji: '🗑️', label: '损耗记录', badge: '',
+        route: '/pages/damage/damage' },
       {
         key: 'report', emoji: '📊', label: '经营查询', badge: '',
         items: [
@@ -591,6 +598,15 @@ Page({
     }
     if (action && action.items && action.items.length) {
       this._openReportMenu(action.items, key);
+      return;
+    }
+    // 带 route 配置：直接 navigateTo 小程序原生页（如损耗记录，不走 AI/web-view）
+    if (action && action.route) {
+      if (!this._requireLogin()) return;
+      wx.navigateTo({
+        url: action.route,
+        fail: function () { wx.showToast({ title: '页面不存在', icon: 'none' }); },
+      });
       return;
     }
     // 带 open 配置：直接打开 web-view 页（功能聚合/我的等，不走 AI）

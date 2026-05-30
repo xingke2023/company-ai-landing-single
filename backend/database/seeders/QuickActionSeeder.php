@@ -25,12 +25,21 @@ class QuickActionSeeder extends Seeder
             'web_label' => '📦 打开完整库存页', 'sort_order' => 10,
         ]);
 
-        // 2. 今日销售 — web 类型
-        QuickAction::create([
+        // 2. 今日销售 — menu 类型（销售统计 + 上传销售报表）
+        $sales = QuickAction::create([
             'key' => 'sales', 'emoji' => '💰', 'label' => '今日销售',
-            'action_type' => 'web', 'prompt' => '今天卖了多少',
-            'target_path' => '/sales-report', 'target_title' => '今日销售',
-            'web_label' => '📊 打开销售报表', 'sort_order' => 20,
+            'action_type' => 'menu', 'sort_order' => 20,
+        ]);
+        $sales->items()->createMany([
+            ['emoji' => '📊', 'label' => '销售统计', 'desc' => '每日销售报表', 'item_type' => 'route', 'route' => '/pages/report/report?path=%2Fsales-report&title=%E9%94%80%E5%94%AE%E7%BB%9F%E8%AE%A1', 'sort_order' => 10],
+            ['emoji' => '📤', 'label' => '上传销售报表', 'desc' => '拍照/相册/文件 AI 识别入库', 'item_type' => 'route', 'route' => '/pages/sales-upload/sales-upload', 'sort_order' => 20],
+        ]);
+
+        // 2.5 损耗记录 — route 类型（直跳小程序原生页 pages/damage/damage）
+        QuickAction::create([
+            'key' => 'damage', 'emoji' => '🗑️', 'label' => '损耗记录',
+            'action_type' => 'route', 'target_path' => '/pages/damage/damage',
+            'sort_order' => 25,
         ]);
 
         // 3. 经营查询 — menu 类型（4 个子项）

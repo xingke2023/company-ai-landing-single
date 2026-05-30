@@ -69,6 +69,88 @@ function aiVoice(filePath, sessionId) {
   });
 }
 
+/**
+ * 批量录入损耗 —— 舌尖后端 POST /damage/batch
+ * @param {Array} items  [{ product_name, qty, reason, notes?, occurred_at?, image_base64?[] }]
+ * @returns {Promise<object>} { message, total, success, failed, records, errors }
+ */
+function damageBatch(items) {
+  return request('/damage/batch', {
+    method: 'POST',
+    data: { items: items || [] },
+    timeout: 120000,
+  });
+}
+
+/**
+ * 损耗记录列表 —— 舌尖后端 GET /damage?date=&status=&product_id=&supplier_id=
+ * @param {string} date  YYYY-MM-DD（一般传当天）
+ * @returns {Promise<object>} Laravel 分页对象 { data:[...], current_page, total, ... }
+ */
+function damageList(date) {
+  return request('/damage', {
+    method: 'GET',
+    data: date ? { date: date } : {},
+    timeout: 20000,
+  });
+}
+
+/**
+ * 上传销售报表（图片/Excel）→ AI 识别（不写库）—— 舌尖后端 POST /sales/upload/recognize
+ * multipart：字段名 file；formData 可带 sale_date。
+ * @param {string} filePath  图片/文件临时路径
+ * @param {object} [opts]     { saleDate?, name? }
+ * @returns {Promise<object>} { upload_id, sale_date, items:[{product_name,qty,amount,unit}], summary }
+ */
+function salesUploadRecognize(filePath, opts) {
+  opts = opts || {};
+  return new Promise(function (resolve, reject) {
+    var app = getApp();
+    var token = app.globalData.token || '';
+    var base = app.globalData.apiBaseUrl;
+    if (!token) { reject(new Error('Unauthenticated')); return; }
+    var formData = {};
+    if (opts.saleDate) { formData.sale_date = opts.saleDate; }
+    wx.uploadFile({
+      url: base + '/sales/upload/recognize',
+      filePath: filePath,
+      name: 'file',
+      header: { Authorization: 'Bearer ' + token, Accept: 'application/json' },
+      formData: formData,
+      timeout: 120000,
+      success: function (res) {
+        if (res.statusCode === 401) { clearAuth(); reject(new Error('Unauthenticated')); return; }
+        var data = null;
+        try { data = JSON.parse(res.data); } catch (e) { /* ignore */ }
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          var msg = (data && (data.message || data.detail)) || ('HTTP ' + res.statusCode);
+          reject(new Error(msg));
+          return;
+        }
+        if (!data) { reject(new Error('识别响应解析失败')); return; }
+        resolve(data);
+      },
+      fail: function (err) {
+        reject(new Error(err && err.errMsg ? err.errMsg : '上传失败'));
+      },
+    });
+  });
+}
+
+/**
+ * 确认识别明细 → 写入今日销售补录 —— 舌尖后端 POST /sales/upload/{id}/commit
+ * @param {number} uploadId
+ * @param {Array} items  [{ product_name, qty, amount, unit }]
+ * @returns {Promise<object>} { message, processed, failed }
+ */
+function salesUploadCommit(uploadId, items) {
+  return request('/sales/upload/' + uploadId + '/commit', {
+    method: 'POST',
+    data: { items: items || [] },
+    timeout: 60000,
+  });
+}
+
 // 校验当前 token 是否有效（401 时 request() 会自动 clearAuth 并抛 Unauthenticated）
 function me() {
   return request('/me', { method: 'GET', timeout: 15000 });
@@ -99,4 +181,8 @@ module.exports = {
   appConfig: appConfig,
   aiMessage: aiMessage,
   aiVoice: aiVoice,
+  damageBatch: damageBatch,
+  damageList: damageList,
+  salesUploadRecognize: salesUploadRecognize,
+  salesUploadCommit: salesUploadCommit,
 };
