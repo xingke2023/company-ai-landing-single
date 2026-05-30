@@ -7,9 +7,12 @@ use App\Models\DailyOperationLog;
 use App\Models\Inventory;
 use App\Models\InventoryDailySnapshot;
 use App\Models\InventoryTransaction;
+use App\Models\Product;
 use App\Models\SalesDailySummary;
 use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
+use App\Models\Store;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,10 +31,10 @@ class InventoryController extends Controller
             return response()->json(['message' => '该账号未关联任何门店'], 403);
         }
 
-        $store = \App\Models\Store::find($storeId);
+        $store = Store::find($storeId);
         $storeName = $store?->name ?? "门店 #{$storeId}";
 
-        $inventory = Inventory::with('product:id,name,unit,is_fresh,category_id')
+        $inventory = Inventory::with(['product:id,name,unit,is_fresh,category_id', 'product.category:id,name'])
             ->where('store_id', $storeId)
             ->orderByDesc('updated_at')
             ->get()
@@ -41,12 +44,14 @@ class InventoryController extends Controller
                 'product_name' => $item->product?->name,
                 'unit' => $item->product?->unit,
                 'is_fresh' => $item->product?->is_fresh,
+                'category_id' => $item->product?->category_id,
+                'category_name' => $item->product?->category?->name,
                 'current_qty' => (float) $item->current_qty,
                 'available_qty' => (float) $item->available_qty,
                 'last_in_at' => $item->last_in_at?->format('m-d H:i'),
                 'last_out_at' => $item->last_out_at?->format('m-d H:i'),
                 'last_sold_at' => $item->last_sold_at?->format('m-d H:i'),
-                'updated_at' => $item->updated_at ? \Carbon\Carbon::parse($item->updated_at)->format('m-d H:i') : null,
+                'updated_at' => $item->updated_at ? Carbon::parse($item->updated_at)->format('m-d H:i') : null,
             ]);
 
         $pageUrl = $this->generateInventoryPage($storeId, $storeName, $inventory->toArray());
@@ -170,10 +175,17 @@ HTML;
             7 => '调拨出',   8 => '退货入库',
         ];
 
-        $transactions = InventoryTransaction::with('product:id,name,unit')
-            ->where('store_id', $storeId)
+        $query = InventoryTransaction::with('product:id,name,unit')
+            ->where('store_id', $storeId);
+
+        // 可选按日期筛选（不传则返回最近 100 条）
+        if ($request->filled('date')) {
+            $query->whereDate('created_at', $request->date);
+        }
+
+        $transactions = $query
             ->orderByDesc('created_at')
-            ->limit(100)
+            ->limit($request->filled('date') ? 500 : 100)
             ->get()
             ->map(fn ($tx) => [
                 'id' => $tx->id,
@@ -366,7 +378,7 @@ HTML;
             : now();
 
         $result = DB::transaction(function () use ($data, $storeId, $occurredAt, $request) {
-            $product = \App\Models\Product::findOrCreateByName($data['product_name']);
+            $product = Product::findOrCreateByName($data['product_name']);
 
             $inventory = Inventory::firstOrCreate(
                 ['store_id' => $storeId, 'product_id' => $product->id],
@@ -470,7 +482,7 @@ HTML;
                 'sold_qty' => $soldQty,
                 'sold_amount' => $soldAmount,
                 'sales_order_no' => $salesOrder->order_no,
-                'sold_out_at' => $soldOutAt ? \Carbon\Carbon::parse($soldOutAt)->format('H:i') : null,
+                'sold_out_at' => $soldOutAt ? Carbon::parse($soldOutAt)->format('H:i') : null,
                 'already_zero' => false,
             ];
         });
@@ -794,7 +806,7 @@ HTML;
         float $soldQty,
         float $soldAmt,
         string $note,
-        \Carbon\Carbon $occurredAt,
+        Carbon $occurredAt,
     ): SalesOrder {
         $unitPrice = $soldQty > 0 ? round($soldAmt / $soldQty, 4) : 0;
 

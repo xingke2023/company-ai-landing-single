@@ -428,8 +428,8 @@ Page({
     // 点击后 prompt 直接作为用户消息发出去，AI 来响应。
     // 若 items 非空，则改为弹出底部子菜单，由用户选择具体子项。
     quickActions: [
-      { key: 'inventory', emoji: '📦', label: '今日库存', prompt: '查一下今日库存', badge: '',
-        web: { path: '/inventory', title: '今日库存', label: '📦 打开完整库存页' } },
+      { key: 'inventory', emoji: '📦', label: '今日库存', badge: '',
+        open: { path: '/inventory', title: '今日库存' } },
       {
         key: 'sales', emoji: '💰', label: '今日销售', badge: '',
         items: [

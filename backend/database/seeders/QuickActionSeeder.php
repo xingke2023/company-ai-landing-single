@@ -17,12 +17,11 @@ class QuickActionSeeder extends Seeder
             return; // 已有数据则跳过，避免重复
         }
 
-        // 1. 今日库存 — web 类型
+        // 1. 今日库存 — open 类型（直接打开库存管理 web-view 页）
         QuickAction::create([
             'key' => 'inventory', 'emoji' => '📦', 'label' => '今日库存',
-            'action_type' => 'web', 'prompt' => '查一下今日库存',
-            'target_path' => '/inventory', 'target_title' => '今日库存',
-            'web_label' => '📦 打开完整库存页', 'sort_order' => 10,
+            'action_type' => 'open', 'target_path' => '/inventory', 'target_title' => '今日库存',
+            'sort_order' => 10,
         ]);
 
         // 2. 今日销售 — menu 类型（销售统计 + 上传销售报表）

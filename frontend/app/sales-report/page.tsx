@@ -12,9 +12,29 @@ type SortKey = 'sales_amount' | 'sales_qty' | 'avg_price' | 'transaction_count'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function todayStr(): string {
-  const d = new Date()
+function dateStr(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+function todayStr(): string {
+  return dateStr(new Date())
+}
+
+const WEEK_LABELS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+
+// 本周一 → 周日 的 7 天（周一为首）。future 的天不可选。
+function getWeekDays() {
+  const now = new Date()
+  const day = now.getDay() // 0=周日 1=周一 ... 6=周六
+  const offsetToMonday = day === 0 ? -6 : 1 - day
+  const monday = new Date(now)
+  monday.setDate(now.getDate() + offsetToMonday)
+  const today = dateStr(now)
+  return WEEK_LABELS.map((label, i) => {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + i)
+    const ds = dateStr(d)
+    return { label, date: ds, dayNum: d.getDate(), isFuture: ds > today, isToday: ds === today }
+  })
 }
 
 function fmt(n: number): string {
@@ -91,6 +111,8 @@ export default function SalesReportPage() {
     </span>
   )
 
+  const weekDays = getWeekDays()
+
   if (loading) {
     return <div className="flex items-center justify-center h-screen text-gray-400">加载中...</div>
   }
@@ -135,16 +157,46 @@ export default function SalesReportPage() {
 
       <div className="p-3 space-y-2.5 max-w-2xl mx-auto">
 
-        {/* Date picker */}
-        <div className="bg-white rounded-xl border border-gray-100 p-2.5 flex items-center gap-3">
-          <span className="text-sm text-gray-500 shrink-0">查询日期</span>
-          <input
-            type="date"
-            value={date}
-            max={todayStr()}
-            onChange={e => setDate(e.target.value)}
-            className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300"
-          />
+        {/* Date selector: 星期一行 + 任意日期 */}
+        <div className="bg-white rounded-xl border border-gray-100 p-2.5">
+          <div className="flex gap-1 mb-2">
+            {weekDays.map(d => (
+              <button
+                key={d.date}
+                disabled={d.isFuture}
+                onClick={() => setDate(d.date)}
+                className={`flex-1 flex flex-col items-center py-1.5 rounded-lg border text-xs transition-colors ${
+                  d.isFuture
+                    ? 'opacity-40 text-gray-300 border-gray-100 bg-white'
+                    : date === d.date
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-gray-600 border-gray-200'
+                }`}
+              >
+                <span>{d.label}</span>
+                <span className={`text-[10px] mt-0.5 ${
+                  date === d.date ? 'text-white/80' : d.isToday ? 'text-blue-600 font-semibold' : 'text-gray-400'
+                }`}>
+                  {d.dayNum}
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={date}
+              max={todayStr()}
+              onChange={e => setDate(e.target.value)}
+              className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            />
+            <button
+              onClick={() => setDate(todayStr())}
+              className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 bg-white text-gray-500 active:bg-gray-50 shrink-0"
+            >
+              今天
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -157,94 +209,70 @@ export default function SalesReportPage() {
 
         {report && (
           <>
-            {/* Summary cards */}
+            {/* Summary cards — 紧凑：标签+数值同一行 */}
             <div className="grid grid-cols-2 gap-2">
-              <div className="bg-orange-50 border border-orange-100 rounded-xl p-2.5 text-center">
-                <p className="text-xs text-orange-400 mb-1">总销售额</p>
-                <p className="text-xl font-bold text-orange-600 tabular-nums">¥{fmt(report.total_amount)}</p>
+              <div className="bg-orange-50 border border-orange-100 rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+                <span className="text-xs text-orange-400">总销售额</span>
+                <span className="text-base font-bold text-orange-600 tabular-nums">¥{fmt(report.total_amount)}</span>
               </div>
-              <div className="bg-blue-50 border border-blue-100 rounded-xl p-2.5 text-center">
-                <p className="text-xs text-blue-400 mb-1">销售笔数</p>
-                <p className="text-xl font-bold text-blue-600 tabular-nums">{report.total_orders}</p>
+              <div className="bg-blue-50 border border-blue-100 rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+                <span className="text-xs text-blue-400">销售笔数</span>
+                <span className="text-base font-bold text-blue-600 tabular-nums">{report.total_orders}</span>
               </div>
-              <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-2.5 text-center">
-                <p className="text-xs text-emerald-500 mb-1">总销售量</p>
-                <p className="text-xl font-bold text-emerald-600 tabular-nums">{report.total_qty}</p>
-                <p className="text-xs text-emerald-400">（综合单位）</p>
+              <div className="bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+                <span className="text-xs text-emerald-500">总销售量</span>
+                <span className="text-base font-bold text-emerald-600 tabular-nums">{report.total_qty}</span>
               </div>
-              <div className="bg-purple-50 border border-purple-100 rounded-xl p-2.5 text-center">
-                <p className="text-xs text-purple-400 mb-1">品种数</p>
-                <p className="text-xl font-bold text-purple-600 tabular-nums">{report.total_skus}</p>
+              <div className="bg-purple-50 border border-purple-100 rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+                <span className="text-xs text-purple-400">品种数</span>
+                <span className="text-base font-bold text-purple-600 tabular-nums">{report.total_skus}</span>
               </div>
             </div>
 
-            {/* Source breakdown */}
+            {/* 录入来源 + 支付方式 — 紧凑合并 */}
             {report.total_amount > 0 && (
-              <div className="bg-white rounded-xl border border-gray-100 p-3">
-                <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">录入来源分布</p>
-                <div className="flex rounded-lg overflow-hidden h-4 mb-3">
-                  {report.source_breakdown.pos.amount > 0 && (
-                    <div
-                      className="bg-blue-400"
-                      style={{ width: pct(report.source_breakdown.pos.amount, report.total_amount) }}
-                    />
-                  )}
-                  {report.source_breakdown.supplement.amount > 0 && (
-                    <div
-                      className="bg-amber-400"
-                      style={{ width: pct(report.source_breakdown.supplement.amount, report.total_amount) }}
-                    />
-                  )}
-                  {report.source_breakdown.ai.amount > 0 && (
-                    <div
-                      className="bg-emerald-400"
-                      style={{ width: pct(report.source_breakdown.ai.amount, report.total_amount) }}
-                    />
-                  )}
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  {([
-                    { key: 'pos', label: 'POS收银', color: 'text-blue-500', bg: 'bg-blue-400' },
-                    { key: 'supplement', label: '人工补录', color: 'text-amber-500', bg: 'bg-amber-400' },
-                    { key: 'ai', label: 'AI录入', color: 'text-emerald-500', bg: 'bg-emerald-400' },
-                  ] as const).map(({ key, label, color, bg }) => (
-                    <div key={key}>
-                      <div className="flex items-center justify-center gap-1 mb-0.5">
+              <div className="bg-white rounded-xl border border-gray-100 p-2.5 space-y-2">
+                {/* 录入来源：细条 + 行内图例 */}
+                <div>
+                  <div className="flex rounded-md overflow-hidden h-2 mb-1.5">
+                    {report.source_breakdown.pos.amount > 0 && (
+                      <div className="bg-blue-400" style={{ width: pct(report.source_breakdown.pos.amount, report.total_amount) }} />
+                    )}
+                    {report.source_breakdown.supplement.amount > 0 && (
+                      <div className="bg-amber-400" style={{ width: pct(report.source_breakdown.supplement.amount, report.total_amount) }} />
+                    )}
+                    {report.source_breakdown.ai.amount > 0 && (
+                      <div className="bg-emerald-400" style={{ width: pct(report.source_breakdown.ai.amount, report.total_amount) }} />
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                    {([
+                      { key: 'pos', label: 'POS', color: 'text-blue-500', bg: 'bg-blue-400' },
+                      { key: 'supplement', label: '补录', color: 'text-amber-500', bg: 'bg-amber-400' },
+                      { key: 'ai', label: 'AI', color: 'text-emerald-500', bg: 'bg-emerald-400' },
+                    ] as const).map(({ key, label, color, bg }) => (
+                      <span key={key} className="flex items-center gap-1">
                         <span className={`w-2 h-2 rounded-full inline-block ${bg}`} />
-                        <span className="text-xs text-gray-400">{label}</span>
-                      </div>
-                      <p className={`text-sm font-bold tabular-nums ${color}`}>
-                        ¥{fmt(report.source_breakdown[key].amount)}
-                      </p>
-                      <p className="text-xs text-gray-300">
-                        {pct(report.source_breakdown[key].amount, report.total_amount)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Payment breakdown */}
-            {report.payment_breakdown.length > 0 && (
-              <div className="bg-white rounded-xl border border-gray-100 p-3">
-                <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">支付方式</p>
-                <div className="space-y-2">
-                  {report.payment_breakdown.map(p => (
-                    <div key={p.method} className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500 w-14 shrink-0">{p.label}</span>
-                      <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
-                        <div
-                          className="bg-gray-400 h-2 rounded-full"
-                          style={{ width: pct(p.amount, report.total_amount) }}
-                        />
-                      </div>
-                      <span className="text-xs font-medium text-gray-700 tabular-nums w-20 text-right">
-                        ¥{fmt(p.amount)} ({p.count}笔)
+                        <span className="text-gray-400">{label}</span>
+                        <span className={`font-semibold tabular-nums ${color}`}>¥{fmt(report.source_breakdown[key].amount)}</span>
+                        <span className="text-gray-300">{pct(report.source_breakdown[key].amount, report.total_amount)}</span>
                       </span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
+
+                {/* 支付方式：行内 chips */}
+                {report.payment_breakdown.length > 0 && (
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs pt-2 border-t border-gray-50">
+                    {report.payment_breakdown.map(p => (
+                      <span key={p.method} className="flex items-center gap-1">
+                        <span className="text-gray-500">{p.label}</span>
+                        <span className="font-semibold text-gray-700 tabular-nums">¥{fmt(p.amount)}</span>
+                        <span className="text-gray-300">({p.count}笔)</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

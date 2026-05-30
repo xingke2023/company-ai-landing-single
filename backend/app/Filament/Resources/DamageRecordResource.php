@@ -72,7 +72,7 @@ class DamageRecordResource extends Resource
                     ->label('状态')
                     ->badge()
                     ->formatStateUsing(fn (int $state): string => match ($state) {
-                        1 => '待提交',
+                        1 => '已上报',
                         2 => '已提交供应商',
                         3 => '已退款',
                         4 => '已关闭',
@@ -115,7 +115,7 @@ class DamageRecordResource extends Resource
                 Tables\Filters\SelectFilter::make('status')
                     ->label('状态')
                     ->options([
-                        1 => '待提交',
+                        1 => '已上报',
                         2 => '已提交供应商',
                         3 => '已退款',
                         4 => '已关闭',

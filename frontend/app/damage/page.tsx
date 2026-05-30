@@ -17,7 +17,7 @@ import {
 const REASONS = ['变质', '包装破损', '运输损坏', '过期', '其他']
 
 const DAMAGE_STATUS_MAP: Record<number, { label: string; cls: string }> = {
-  1: { label: '待提交', cls: 'bg-amber-50 text-amber-600 border-amber-200' },
+  1: { label: '已上报', cls: 'bg-amber-50 text-amber-600 border-amber-200' },
   2: { label: '已提交供应商', cls: 'bg-blue-50 text-blue-600 border-blue-200' },
   3: { label: '已退款', cls: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
   4: { label: '已关闭', cls: 'bg-gray-100 text-gray-400 border-gray-200' },

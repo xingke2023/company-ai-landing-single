@@ -6,6 +6,8 @@ export interface InventoryItem {
   product_name: string
   unit: string
   is_fresh: boolean
+  category_id: number | null
+  category_name: string | null
   current_qty: number
   available_qty: number
   last_in_at: string | null
@@ -38,8 +40,8 @@ export const inventoryApi = {
   list: (token: string) =>
     apiClient.get<{ data: InventoryItem[] }>('/inventory', token),
 
-  transactions: (token: string) =>
-    apiClient.get<{ data: InventoryTransaction[] }>('/inventory/transactions', token),
+  transactions: (token: string, date?: string) =>
+    apiClient.get<{ data: InventoryTransaction[] }>(`/inventory/transactions${date ? `?date=${date}` : ''}`, token),
 
   adjust: (data: AdjustRequest, token: string) =>
     apiClient.post<{ message: string }>('/inventory/adjust', data, token),
@@ -49,6 +51,6 @@ export const inventoryApi = {
     apiClient.get<{ data: InventoryItem[] }>('/inventory', token),
 
   /** @deprecated use inventoryApi.transactions */
-  getTransactions: (token: string) =>
-    apiClient.get<{ data: InventoryTransaction[] }>('/inventory/transactions', token),
+  getTransactions: (token: string, date?: string) =>
+    apiClient.get<{ data: InventoryTransaction[] }>(`/inventory/transactions${date ? `?date=${date}` : ''}`, token),
 }

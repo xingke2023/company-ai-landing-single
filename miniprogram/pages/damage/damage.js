@@ -21,7 +21,7 @@ function localNow() {
 var MAX_PHOTOS = 3;   // 每条最多 3 张（控制 base64 体积）
 var MAX_DRAFTS = 20;  // 每批最多 20 条（与后端 storeBatch 校验一致）
 
-var STATUS_LABELS = { 1: '待提交', 2: '已提交', 3: '已退款', 4: '已关闭' };
+var STATUS_LABELS = { 1: '已上报', 2: '已提交', 3: '已退款', 4: '已关闭' };
 
 function emptyForm() {
   return { product_name: '', qty: '', reason: '变质', customReason: '', notes: '', photos: [] };

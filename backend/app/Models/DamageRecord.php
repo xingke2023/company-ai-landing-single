@@ -40,7 +40,7 @@ class DamageRecord extends Model
     public function statusLabel(): string
     {
         return match ($this->status) {
-            1 => '待提交',
+            1 => '已上报',
             2 => '已提交供应商',
             3 => '已退款',
             4 => '已关闭',
