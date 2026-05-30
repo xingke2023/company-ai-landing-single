@@ -38,5 +38,8 @@ class DatabaseSeeder extends Seeder
 
         // 小程序聊天页底部快捷按钮（后台可配）
         $this->call(QuickActionSeeder::class);
+
+        // 应用配置（小程序标题等）
+        $this->call(AppSettingSeeder::class);
     }
 }

@@ -79,6 +79,11 @@ function quickActions() {
   return request('/quick-actions', { method: 'GET', timeout: 15000 });
 }
 
+// 公开应用配置（小程序标题等品牌文案）——无需登录，返回 { data: { key: value } }
+function appConfig() {
+  return request('/app-config', { method: 'GET', timeout: 15000 });
+}
+
 // 退出登录：尽力通知后端使 token 失效，无论成败都清掉本地登录态
 function logout() {
   return request('/logout', { method: 'POST', timeout: 10000 })
@@ -91,6 +96,7 @@ module.exports = {
   me: me,
   logout: logout,
   quickActions: quickActions,
+  appConfig: appConfig,
   aiMessage: aiMessage,
   aiVoice: aiVoice,
 };

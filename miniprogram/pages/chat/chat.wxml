@@ -4,7 +4,7 @@
     <view class="header-inner">
       <view class="avatar"><image class="avatar-svg" src="{{icons.bot}}" mode="aspectFit" /></view>
       <view class="title-block">
-        <view class="title">舌尖生鲜</view>
+        <view class="title">{{appTitle}}</view>
         <view class="subtitle">
           <text class="dot"></text>
           <text wx:if="{{user}}">{{user.name}}</text>

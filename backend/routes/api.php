@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AiAssistantController;
+use App\Http\Controllers\Api\AppConfigController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChatLogController;
 use App\Http\Controllers\Api\DamageController;
@@ -20,6 +21,8 @@ use Illuminate\Support\Facades\Route;
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+// 公开应用配置（小程序标题等，登录前也要能拿到）
+Route::get('/app-config', [AppConfigController::class, 'index']);
 
 // Protected routes
 Route::middleware('auth.hybrid')->group(function () {

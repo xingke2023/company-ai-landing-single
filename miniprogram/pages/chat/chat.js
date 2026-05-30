@@ -403,6 +403,7 @@ function mdToHtml(text) {
 Page({
   data: {
     statusBarHeight: 0,
+    appTitle: '舌尖生鲜', // 顶部标题，后台 app_config 可覆盖
     user: null,
     logging: false,
     loginForm: { username: '', password: '' },
@@ -466,6 +467,9 @@ Page({
     var app = getApp();
     this._sessionId = null;
 
+    // 应用配置（标题等）——公开接口，登录前也拉取
+    this._loadAppConfig();
+
     // 开启右上角「…」菜单里的转发给朋友 / 分享到朋友圈
     if (wx.showShareMenu) {
       wx.showShareMenu({ withShareTicket: false, menus: ['shareAppMessage', 'shareTimeline'] });
@@ -495,6 +499,17 @@ Page({
         wx.showToast({ title: '登录已失效，请重新登录', icon: 'none' });
       }
     });
+  },
+
+  // 拉取应用配置（标题等）；失败则保留 data 里的默认标题
+  _loadAppConfig: function () {
+    var self = this;
+    api.appConfig().then(function (res) {
+      var cfg = (res && res.data) || {};
+      if (cfg.miniprogram_title) {
+        self.setData({ appTitle: cfg.miniprogram_title });
+      }
+    }).catch(function () { /* 保留默认标题 */ });
   },
 
   // 从后台拉取底部快捷按钮配置；失败/空则保留 data 里写死的默认数组（避免空白）
