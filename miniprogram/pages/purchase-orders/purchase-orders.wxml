@@ -1,0 +1,83 @@
+<view class="root">
+  <view class="header" style="padding-top: {{statusBarHeight}}px;">
+    <view class="header-inner">
+      <view class="back-btn" bindtap="onBack">‹</view>
+      <view class="header-title">历史进货单记录</view>
+      <view class="header-spacer"></view>
+    </view>
+  </view>
+
+  <!-- 星期 + 任意日期 -->
+  <view class="picker-bar">
+    <view class="week-row">
+      <view wx:for="{{weekDays}}" wx:key="date"
+        class="wd {{item.isFuture ? 'wd-dis' : (txDate === item.date ? 'wd-on' : '')}}"
+        data-date="{{item.date}}" data-future="{{item.isFuture}}" bindtap="onPickDay">
+        <text class="wd-label">{{item.label}}</text>
+        <text class="wd-num {{item.isToday && txDate !== item.date ? 'wd-today' : ''}}">{{item.dayNum}}</text>
+      </view>
+    </view>
+    <view class="date-row">
+      <picker mode="date" value="{{txDate}}" end="{{today}}" bindchange="onDateChange">
+        <view class="date-pick">{{txDate}} ▾</view>
+      </picker>
+      <view class="quick-days">
+        <view class="qd {{txDate === dayBefore2 ? 'qd-on' : ''}}" data-date="{{dayBefore2}}" bindtap="onPickDay">前天</view>
+        <view class="qd {{txDate === yesterday ? 'qd-on' : ''}}" data-date="{{yesterday}}" bindtap="onPickDay">昨天</view>
+        <view class="qd {{txDate === today ? 'qd-on' : ''}}" data-date="{{today}}" bindtap="onPickDay">今天</view>
+      </view>
+    </view>
+  </view>
+
+  <scroll-view class="body" scroll-y="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
+    <view wx:if="{{loading}}" class="empty">加载中…</view>
+    <view wx:elif="{{!orders.length}}" class="empty">
+      <view class="empty-emoji">🚚</view>
+      <view>{{txDate}} 暂无进货单</view>
+      <view class="empty-sub">用「上传进货单」拍照录入</view>
+    </view>
+
+    <view wx:for="{{orders}}" wx:key="id" class="order">
+      <view class="order-head" data-index="{{index}}" bindtap="onToggle">
+        <view class="order-headl">
+          <view class="order-no">{{item.order_no}}</view>
+          <view class="order-meta">
+            <text wx:if="{{item.date}}">{{item.date}}</text>
+            <text wx:if="{{item.supplier}}"> · {{item.supplier}}</text>
+            <text> · {{item.skuCount}} 个商品</text>
+          </view>
+        </view>
+        <view class="order-headr">
+          <text class="order-total">¥{{item.total}}</text>
+          <text class="chev">{{item.expanded ? '▾' : '▸'}}</text>
+        </view>
+      </view>
+
+      <block wx:if="{{item.expanded}}">
+      <view class="order-items">
+        <view wx:for="{{item.items}}" wx:for-item="it" wx:key="name" class="oi">
+          <text class="oi-name">{{it.name}}</text>
+          <text class="oi-qty">{{it.qty}}{{it.unit}}{{it.price ? ' · ¥' + it.price : ''}}</text>
+        </view>
+      </view>
+
+      <view wx:if="{{item.photos.length || item.files.length}}" class="order-docs">
+        <view class="docs-label">原始单据</view>
+        <view wx:if="{{item.photos.length}}" class="order-photos">
+          <image wx:for="{{item.photos}}" wx:for-item="ph" wx:key="*this"
+            class="order-thumb" src="{{ph}}" mode="aspectFill"
+            data-url="{{ph}}" data-urls="{{item.photos}}" bindtap="onPreviewPhoto" />
+        </view>
+        <view wx:for="{{item.files}}" wx:for-item="f" wx:key="url"
+          class="file-row" data-url="{{f.url}}" data-ext="{{f.ext}}" catchtap="onOpenFile">
+          <text class="file-icon">📄</text>
+          <text class="file-name">{{f.name}}</text>
+          <text class="file-act">查看 / 下载</text>
+        </view>
+      </view>
+      </block>
+    </view>
+
+    <view class="bottom-pad"></view>
+  </scroll-view>
+</view>

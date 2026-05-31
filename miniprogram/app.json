@@ -3,7 +3,9 @@
     "pages/chat/chat",
     "pages/report/report",
     "pages/damage/damage",
-    "pages/sales-upload/sales-upload"
+    "pages/sales-upload/sales-upload",
+    "pages/purchase-upload/purchase-upload",
+    "pages/purchase-orders/purchase-orders"
   ],
   "window": {
     "navigationStyle": "custom",

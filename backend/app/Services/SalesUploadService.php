@@ -26,9 +26,9 @@ class SalesUploadService
      *
      * @return array<int, array<string, mixed>>
      */
-    public function parseExcel(string $storagePath): array
+    public function parseExcel(string $storagePath, ?string $disk = null): array
     {
-        $absolutePath = Storage::path($storagePath);
+        $absolutePath = $disk ? Storage::disk($disk)->path($storagePath) : Storage::path($storagePath);
         $spreadsheet = IOFactory::load($absolutePath);
         $sheet = $spreadsheet->getActiveSheet();
         $rows = [];
@@ -202,21 +202,27 @@ PROMPT;
 }
 PROMPT;
 
-        $response = Http::baseUrl(config('ai.vision_base_url'))
-            ->withToken(config('ai.vision_api_key'))
-            ->timeout(120)
-            ->post('/chat/completions', [
-                'model' => config('ai.vision_model'),
-                'messages' => [
-                    ['role' => 'system', 'content' => $systemPrompt],
-                    ['role' => 'user', 'content' => [
-                        ['type' => 'text', 'text' => '这是一张门店销售记录图片，请识别其中每个商品的销售数量和金额。'],
-                        ['type' => 'image_url', 'image_url' => ['url' => 'data:image/jpeg;base64,'.$imageBase64]],
-                    ]],
-                ],
-                'temperature' => 0.1,
-                'response_format' => ['type' => 'json_object'],
-            ]);
+        try {
+            $response = Http::baseUrl(config('ai.vision_base_url'))
+                ->withToken(config('ai.vision_api_key'))
+                ->timeout(60)
+                ->post('/chat/completions', [
+                    'model' => config('ai.vision_model'),
+                    'messages' => [
+                        ['role' => 'system', 'content' => $systemPrompt],
+                        ['role' => 'user', 'content' => [
+                            ['type' => 'text', 'text' => '这是一张门店销售记录图片，请识别其中每个商品的销售数量和金额。'],
+                            ['type' => 'image_url', 'image_url' => ['url' => 'data:image/jpeg;base64,'.$imageBase64]],
+                        ]],
+                    ],
+                    'temperature' => 0.1,
+                    'response_format' => ['type' => 'json_object'],
+                ]);
+        } catch (\Throwable $e) {
+            Log::error('SalesUpload image AI exception', ['error' => $e->getMessage()]);
+
+            return ['items' => [], 'summary' => 'AI 识别超时，请重试，或换一张更清晰/更小的图片'];
+        }
 
         if ($response->failed()) {
             Log::error('SalesUpload image AI failed', ['status' => $response->status(), 'body' => $response->body()]);

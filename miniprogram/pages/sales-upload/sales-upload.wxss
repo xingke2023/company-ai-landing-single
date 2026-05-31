@@ -96,15 +96,17 @@
 .c-del { width: 40rpx; flex-shrink: 0; text-align: center; }
 .cell {
   box-sizing: border-box;
+  height: 64rpx;
   background: #F8F2ED;
   border-radius: 8rpx;
-  padding: 14rpx 12rpx;
+  padding: 0 12rpx;
   font-size: 25rpx;
+  line-height: 64rpx;
   color: #2A1F19;
 }
 .cell-num { text-align: center; }
 .del { color: #E65C46; font-size: 28rpx; }
-.ph { color: #b5a89f; }
+.ph { color: #b5a89f; font-size: 25rpx; }
 
 .add-row {
   margin-top: 8rpx;

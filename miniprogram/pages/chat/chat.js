@@ -440,6 +440,13 @@ Page({
       { key: 'damage',    emoji: '🗑️', label: '损耗记录', badge: '',
         route: '/pages/damage/damage' },
       {
+        key: 'purchase', emoji: '🚚', label: '进货单记录', badge: '',
+        items: [
+          { key: 'purchase-history', emoji: '📋', label: '历史进货单记录', desc: '看历史上传的单据', route: '/pages/purchase-orders/purchase-orders' },
+          { key: 'purchase-upload',  emoji: '📤', label: '上传进货单',     desc: '拍照/相册/文件 AI 识别入库', route: '/pages/purchase-upload/purchase-upload' },
+        ],
+      },
+      {
         key: 'report', emoji: '📊', label: '经营查询', badge: '',
         items: [
           { key: 'overview',  emoji: '📊', label: '每日营运概况', desc: '往日库存/进货/已售/售罄', route: '/pages/report/report' },

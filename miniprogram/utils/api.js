@@ -151,6 +151,58 @@ function salesUploadCommit(uploadId, items) {
   });
 }
 
+/**
+ * 上传进货单据（图片/Excel）→ AI 识别（不写库）—— POST /purchase-orders/recognize
+ * @param {string} filePath
+ * @returns {Promise<object>} { items:[{product_name,ordered_qty,unit_price,unit}], summary, image_paths }
+ */
+function purchaseRecognize(filePath) {
+  return new Promise(function (resolve, reject) {
+    var app = getApp();
+    var token = app.globalData.token || '';
+    var base = app.globalData.apiBaseUrl;
+    if (!token) { reject(new Error('Unauthenticated')); return; }
+    wx.uploadFile({
+      url: base + '/purchase-orders/recognize',
+      filePath: filePath,
+      name: 'file',
+      header: { Authorization: 'Bearer ' + token, Accept: 'application/json' },
+      timeout: 120000,
+      success: function (res) {
+        if (res.statusCode === 401) { clearAuth(); reject(new Error('Unauthenticated')); return; }
+        var data = null;
+        try { data = JSON.parse(res.data); } catch (e) { /* ignore */ }
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          var msg = (data && (data.message || data.detail)) || ('HTTP ' + res.statusCode);
+          reject(new Error(msg));
+          return;
+        }
+        if (!data) { reject(new Error('识别响应解析失败')); return; }
+        resolve(data);
+      },
+      fail: function (err) {
+        reject(new Error(err && err.errMsg ? err.errMsg : '上传失败'));
+      },
+    });
+  });
+}
+
+/**
+ * 确认进货明细 → 入库（建单+收货+加库存）—— POST /purchase-orders
+ * @param {object} data  { date, items:[{product_name,ordered_qty,unit_price,unit}], image_paths }
+ */
+function purchaseCommit(data) {
+  return request('/purchase-orders', { method: 'POST', data: data || {}, timeout: 60000 });
+}
+
+/**
+ * 历史进货单列表 —— GET /purchase-orders?date=&status=
+ * @returns {Promise<object>} Laravel 分页对象 { data:[...], ... }
+ */
+function purchaseList(params) {
+  return request('/purchase-orders', { method: 'GET', data: params || {}, timeout: 20000 });
+}
+
 // 校验当前 token 是否有效（401 时 request() 会自动 clearAuth 并抛 Unauthenticated）
 function me() {
   return request('/me', { method: 'GET', timeout: 15000 });
@@ -185,4 +237,7 @@ module.exports = {
   damageList: damageList,
   salesUploadRecognize: salesUploadRecognize,
   salesUploadCommit: salesUploadCommit,
+  purchaseRecognize: purchaseRecognize,
+  purchaseCommit: purchaseCommit,
+  purchaseList: purchaseList,
 };

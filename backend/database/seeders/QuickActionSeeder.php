@@ -41,6 +41,16 @@ class QuickActionSeeder extends Seeder
             'sort_order' => 25,
         ]);
 
+        // 2.6 进货单记录 — menu 类型（历史 + 上传）
+        $purchase = QuickAction::create([
+            'key' => 'purchase', 'emoji' => '🚚', 'label' => '进货单记录',
+            'action_type' => 'menu', 'sort_order' => 28,
+        ]);
+        $purchase->items()->createMany([
+            ['emoji' => '📋', 'label' => '历史进货单记录', 'desc' => '看历史上传的单据', 'item_type' => 'route', 'route' => '/pages/purchase-orders/purchase-orders', 'sort_order' => 10],
+            ['emoji' => '📤', 'label' => '上传进货单', 'desc' => '拍照/相册/文件 AI 识别入库', 'item_type' => 'route', 'route' => '/pages/purchase-upload/purchase-upload', 'sort_order' => 20],
+        ]);
+
         // 3. 经营查询 — menu 类型（4 个子项）
         $report = QuickAction::create([
             'key' => 'report', 'emoji' => '📊', 'label' => '经营查询',

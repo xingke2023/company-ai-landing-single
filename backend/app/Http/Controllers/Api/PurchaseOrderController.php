@@ -10,12 +10,16 @@ use App\Models\InventoryTransaction;
 use App\Models\Product;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
+use App\Services\PurchaseUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class PurchaseOrderController extends Controller
 {
+    public function __construct(private PurchaseUploadService $uploadService) {}
+
     /**
      * 进货单列表。
      *
@@ -77,10 +81,13 @@ class PurchaseOrderController extends Controller
             'store_id' => 'nullable|integer',
             'supplier_id' => 'nullable|integer|exists:suppliers,id',
             'notes' => 'nullable|string|max:500',
+            'image_paths' => 'nullable|array|max:5',
+            'image_paths.*' => 'string|max:255',
             'items' => 'required|array|min:1',
             'items.*.product_name' => 'required|string|max:100',
             'items.*.ordered_qty' => 'required|numeric|min:0.001',
             'items.*.unit_price' => 'nullable|numeric|min:0',
+            'items.*.unit' => 'nullable|string|max:10',
         ]);
 
         $storeId = $request->user()->resolveStoreId();
@@ -110,13 +117,14 @@ class PurchaseOrderController extends Controller
                 'expected_delivery_date' => $deliveryDate,
                 'total_amount' => $totalAmount,
                 'notes' => $data['notes'] ?? '图片录入',
+                'image_paths' => $data['image_paths'] ?? null,
                 'created_by' => $request->user()->id,
             ]);
 
             $itemResults = [];
 
             foreach ($data['items'] as $itemData) {
-                $product = Product::findOrCreateByName($itemData['product_name']);
+                $product = Product::findOrCreateByName($itemData['product_name'], 1, $itemData['unit'] ?? null);
                 $orderedQty = (float) $itemData['ordered_qty'];
                 $unitPrice = (float) ($itemData['unit_price'] ?? 0);
 
@@ -207,5 +215,48 @@ class PurchaseOrderController extends Controller
             'date' => $result['date'],
             'items' => $result['items'],
         ], 201);
+    }
+
+    /**
+     * 上传进货单据（拍照/相册图片 或 Excel/CSV）→ AI 识别 → 只返回明细供核对，不写库。
+     * 图片留存到 public 盘，随返回 image_paths，确认入库时回传以在历史里展示原始单据。
+     *
+     * POST /api/purchase-orders/recognize  (multipart: file)
+     */
+    public function recognize(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => 'required|file|max:10240|mimes:jpg,jpeg,png,webp,xlsx,xls,csv',
+        ], [
+            'file.mimes' => '只支持图片(jpg/png/webp)或表格(xlsx/xls/csv)',
+            'file.max' => '文件大小不能超过 10MB',
+        ]);
+
+        $storeId = $request->user()->resolveStoreId();
+        if (! $storeId) {
+            return response()->json(['message' => '该账号未关联任何门店'], 403);
+        }
+
+        $file = $request->file('file');
+        $ext = strtolower($file->getClientOriginalExtension());
+        $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true);
+        $dir = "purchase_uploads/{$storeId}/".today()->toDateString();
+
+        // 原始单据（图片或表格）一律存 public 盘 → 历史可查看/下载
+        $path = $file->store($dir, 'public');
+        $imagePaths = ['/storage/'.$path];
+
+        if ($isImage) {
+            $base64 = base64_encode(Storage::disk('public')->get($path));
+            $result = $this->uploadService->recognizeFromImage($base64);
+        } else {
+            $result = $this->uploadService->recognizeFromExcel($path, 'public');
+        }
+
+        return response()->json([
+            'items' => $result['items'] ?? [],
+            'summary' => $result['summary'] ?? '',
+            'image_paths' => $imagePaths,
+        ]);
     }
 }

@@ -21,6 +21,7 @@ class PurchaseOrder extends Model
         'actual_delivery_date',
         'total_amount',
         'notes',
+        'image_paths',
         'created_by',
         'approved_by',
         'approved_at',
@@ -32,6 +33,7 @@ class PurchaseOrder extends Model
             'expected_delivery_date' => 'date',
             'actual_delivery_date' => 'date',
             'total_amount' => 'decimal:2',
+            'image_paths' => 'array',
             'approved_at' => 'datetime',
         ];
     }

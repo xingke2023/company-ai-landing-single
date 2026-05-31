@@ -64,6 +64,7 @@ Route::middleware('auth.hybrid')->group(function () {
 
     // 进货单
     Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
+    Route::post('/purchase-orders/recognize', [PurchaseOrderController::class, 'recognize']);
     Route::get('/purchase-orders/{id}', [PurchaseOrderController::class, 'show']);
     Route::post('/purchase-orders', [PurchaseOrderController::class, 'store']);
 

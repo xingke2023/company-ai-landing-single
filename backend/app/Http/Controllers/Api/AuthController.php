@@ -114,16 +114,21 @@ class AuthController extends Controller
         $token = $user->createToken('auth_token', ['store:'.$storeId], now()->addDays(30))->plainTextToken;
         $jwtToken = app(JwtService::class)->issueForUser($user, $storeId);
 
+        $store = $storeId ? Store::find($storeId, ['id', 'name']) : null;
+
         return response()->json([
             'message' => '登录成功',
             'token' => $token,
             'jwt_token' => $jwtToken,
             'store_id' => $storeId,
+            'store_name' => $store?->name,
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
                 'is_admin' => $user->is_admin,
+                'store_id' => $storeId,
+                'store_name' => $store?->name,
             ],
         ]);
     }
