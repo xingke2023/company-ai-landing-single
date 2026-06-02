@@ -53,9 +53,10 @@ class AiService
 你是生鲜门店AI助手（舌尖香港）。识别用户意图，严格只返回以下JSON，不要其他文字：
 
 {
-  "intent": "purchase_receipt|sale_report|sold_out|remaining|stocktake|waste_report|inventory_query|sales_today_query|daily_overview_query|purchase_orders_query|daily_logs_query|weather_query|refund_claims_query|suggestions_query|product_query|other",
+  "intent": "purchase_receipt|sale_report|sold_out|remaining|stocktake|waste_report|inventory_query|sales_today_query|daily_overview_query|purchase_orders_query|daily_logs_query|weather_query|refund_claims_query|suggestions_query|product_query|customer_add|follow_up_add|customer_query|customer_orders_query|other",
   "date": "YYYY-MM-DD或null（查询类意图若用户指定了日期则填写）",
   "items": [{"product_name":"商品名","qty":数字,"unit":"单位","action":"in|sell|sold_out|remaining|out|adjust","reason":"损耗原因（仅waste_report时填写，如：变质/破损/过期/虫害）"}],
+  "customer": {"name":"顾客姓名或null","phone":"手机号或null","content":"跟进内容（follow_up_add时填写）或null"},
   "reply": "简短中文回复"
 }
 
@@ -77,6 +78,12 @@ class AiService
 - weather_query：询问天气，如"今天天气"、"会下雨吗"、"明天天气"，可带日期，reply返回"正在为您查询天气…"
 - refund_claims_query：查供应商退款申请，如"退款申请情况"、"哪些损耗可以索赔"、"供应商退货进度"
 - suggestions_query：查进货/促销建议，如"今天备什么货"、"有什么建议"、"哪些货要补"、"哪些要促销"
+
+【客户(CRM)类意图】（这些意图 items 必须返回空数组，顾客信息放入 customer 字段）
+- customer_add：新增顾客/会员，如"添加会员张三 13800138000"、"录入客户李四"（customer.name 必填，customer.phone 可选，reply确认已添加）
+- follow_up_add：给某顾客加一条跟进记录，如"给张三加跟进：电话回访意向复购"（customer.name 标识顾客，customer.content 填跟进内容）
+- customer_query：查某顾客档案/消费情况，如"查会员张三"、"客户李四的情况"（customer.name 或 customer.phone 标识，reply返回"正在为您查询…"）
+- customer_orders_query：查顾客订单，如"张三的订单"、"待发货的订单"、"查顾客订单"（customer 可选，reply返回"正在为您查询…"）
 
 【其他】
 - other：与以上均无关

@@ -14,7 +14,7 @@ import { damageApi } from '@/lib/api/damage'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type QuickAction = 'inventory' | 'sales_today' | 'daily_overview' | 'purchase_orders' | 'weather' | 'daily_logs' | 'sales_report' | 'suggestions' | 'damage_stats' | 'product_detail'
+type QuickAction = 'inventory' | 'sales_today' | 'daily_overview' | 'purchase_orders' | 'weather' | 'daily_logs' | 'sales_report' | 'suggestions' | 'damage_stats' | 'product_detail' | 'customers' | 'customer_orders'
 type WriteAction = 'purchase_entry' | 'sales_supplement' | 'damage_entry'
 
 interface ChatMessage {
@@ -756,7 +756,52 @@ function CardRenderer({ type, data }: { type: QuickAction; data: unknown }) {
     case 'suggestions':     return <SuggestionsCard data={data} />
     case 'damage_stats':    return <DamageStatsCard data={data} />
     case 'product_detail':  return <ProductDetailCard data={data} />
+    case 'customers':       return <CustomersCard data={data} />
+    case 'customer_orders': return <CustomerOrdersCard data={data} />
   }
+}
+
+function CustomersCard({ data }: { data: any }) { // eslint-disable-line @typescript-eslint/no-explicit-any
+  const list: any[] = data?.data ?? (Array.isArray(data) ? data : []) // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (!list.length) return <p className="text-gray-400 text-xs py-2">没有找到匹配的顾客</p>
+  return (
+    <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+      {list.map((c: any, i: number) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
+        <div key={i} className="bg-gray-50 rounded-xl px-3 py-2 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-gray-700">{c.name}<span className="text-gray-400 ml-1.5">{c.level}</span></span>
+            <span className="text-gray-400">{c.phone ?? '—'}</span>
+          </div>
+          <div className="flex gap-3 mt-1 text-gray-500">
+            <span>消费 ¥{c.total_spent}</span>
+            <span>订单 {c.order_count}</span>
+            <span>积分 {c.points}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function CustomerOrdersCard({ data }: { data: any }) { // eslint-disable-line @typescript-eslint/no-explicit-any
+  const list: any[] = data?.data ?? (Array.isArray(data) ? data : []) // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (!list.length) return <p className="text-gray-400 text-xs py-2">暂无顾客订单</p>
+  return (
+    <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+      {list.map((o: any, i: number) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
+        <div key={i} className="bg-gray-50 rounded-xl px-3 py-2 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="font-medium text-gray-700">{o.order_no}</span>
+            <span className="text-gray-500">{o.status}</span>
+          </div>
+          <div className="flex items-center justify-between mt-1 text-gray-500">
+            <span>{o.customer_name ?? '散客'} · {o.type}</span>
+            <span className="font-semibold text-gray-700">¥{o.total_amount}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 // ─── Quick Actions ───────────────────────────────────────────────────────────
@@ -790,6 +835,8 @@ const CARD_TITLES: Record<QuickAction, string> = {
   suggestions:     '💡 进货 & 促销建议',
   damage_stats:    '⚠️ 损耗统计',
   product_detail:  '🔍 商品详情',
+  customers:       '👤 顾客档案',
+  customer_orders: '🧾 顾客订单',
 }
 
 // ─── Main Page ───────────────────────────────────────────────────────────────

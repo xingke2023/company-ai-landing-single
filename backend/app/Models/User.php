@@ -111,8 +111,8 @@ class User extends Authenticatable implements FilamentUser
     /**
      * 从当前 token 的 ability 中读取本次会话的门店 ID。
      *
-     * token 在登录时以 store:{id} ability 写入，格式固定。
-     * 未找到时回退到 primaryStoreId()（兼容旧 token / 测试场景）。
+     * 解析优先级：token 的 store:{id} ability → 用户主门店 → 默认门店（config('store.default_id')）。
+     * 「暂不区分门店」阶段：永不返回 null，无门店关联时回退默认门店，避免接口 403。
      */
     public function resolveStoreId(): ?int
     {
@@ -129,6 +129,6 @@ class User extends Authenticatable implements FilamentUser
             }
         }
 
-        return $this->primaryStoreId();
+        return $this->primaryStoreId() ?? (int) config('store.default_id', 1);
     }
 }

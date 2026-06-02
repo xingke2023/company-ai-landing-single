@@ -76,14 +76,20 @@ it('某条缺商品名时整批校验失败 422', function () {
         ->assertJsonValidationErrors(['items.1.product_name']);
 });
 
-it('账号未关联门店时返回 403', function () {
+it('账号未关联门店时回退默认门店（暂不区分门店）', function () {
+    // 预置默认门店（damageActor 建 org id=1 + 门店）
+    [$seedUser, $defaultStore] = damageActor();
+    config(['store.default_id' => $defaultStore->id]);
+
+    // token 不带 store ability，且无 user_store_roles → resolveStoreId() 回退默认门店
     $user = User::factory()->create();
-    // token 不带 store ability，且无 user_store_roles → resolveStoreId() 为 null
     $bearer = $user->createToken('test', [])->plainTextToken;
 
-    $this->withHeader('Authorization', 'Bearer '.$bearer)
+    $res = $this->withHeader('Authorization', 'Bearer '.$bearer)
         ->postJson('/api/damage/batch', [
             'items' => [['product_name' => '番茄ABC', 'qty' => 3, 'reason' => '变质']],
-        ])
-        ->assertStatus(403);
+        ]);
+
+    $res->assertStatus(201)->assertJson(['success' => 1]);
+    expect(DamageRecord::where('store_id', $defaultStore->id)->count())->toBe(1);
 });

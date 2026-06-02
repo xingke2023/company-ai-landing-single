@@ -4,6 +4,8 @@ use App\Http\Controllers\Api\AiAssistantController;
 use App\Http\Controllers\Api\AppConfigController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChatLogController;
+use App\Http\Controllers\Api\CustomerController;
+use App\Http\Controllers\Api\CustomerOrderController;
 use App\Http\Controllers\Api\DamageController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\PostController;
@@ -83,6 +85,20 @@ Route::middleware('auth.hybrid')->group(function () {
     // 供应商退款申请
     Route::put('/refund-claims/{id}/status', [SupplierRefundClaimController::class, 'updateStatus']);
     Route::apiResource('/refund-claims', SupplierRefundClaimController::class)->only(['index', 'store', 'show']);
+
+    // CRM 顾客管理
+    Route::get('/customers/search', [CustomerController::class, 'index']);
+    Route::get('/customers/{id}/follow-ups', [CustomerController::class, 'followUps']);
+    Route::post('/customers/{id}/follow-ups', [CustomerController::class, 'addFollowUp']);
+    Route::apiResource('/customers', CustomerController::class)
+        ->only(['index', 'store', 'show', 'update', 'destroy'])
+        ->parameters(['customers' => 'id']);
+
+    // 顾客订单 / 预订单
+    Route::put('/customer-orders/{id}/status', [CustomerOrderController::class, 'updateStatus']);
+    Route::apiResource('/customer-orders', CustomerOrderController::class)
+        ->only(['index', 'store', 'show'])
+        ->parameters(['customer-orders' => 'id']);
 
     // 人才简历库
     Route::post('/resumes/parse', [ResumeController::class, 'parse']);

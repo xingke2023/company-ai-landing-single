@@ -1,5 +1,10 @@
 <?php
 
+use App\Models\Organization;
+use App\Models\Store;
+use App\Models\User;
+use Tests\TestCase;
+
 /*
 |--------------------------------------------------------------------------
 | Test Case
@@ -11,7 +16,7 @@
 |
 */
 
-pest()->extend(Tests\TestCase::class)
+pest()->extend(TestCase::class)
  // ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature');
 
@@ -44,4 +49,28 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * CRM/订单测试公用：建「门店 + 用户 + token(带 store ability)」，返回 [user, store, bearer]。
+ * store_id / created_by / operator_id 均从该 token 解析。
+ *
+ * @return array{0: User, 1: Store, 2: string}
+ */
+function crmActor(?int $orgId = 1): array
+{
+    $org = new Organization(['name' => '测试组织', 'code' => 'ORG'.fake()->unique()->numerify('###')]);
+    $org->id = $orgId;
+    $org->save();
+    $store = Store::create([
+        'organization_id' => $org->id,
+        'region_id' => null,
+        'name' => '测试门店'.fake()->unique()->numerify('##'),
+        'code' => 'ST'.fake()->unique()->numerify('###'),
+        'status' => 1,
+    ]);
+    $user = User::factory()->create();
+    $bearer = $user->createToken('test', ['store:'.$store->id])->plainTextToken;
+
+    return [$user, $store, $bearer];
 }

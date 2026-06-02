@@ -26,15 +26,15 @@ class ResumeController extends Controller
         }
 
         if ($request->filled('work_type')) {
-            $query->whereRaw('JSON_CONTAINS(work_types, ?)', [json_encode($request->input('work_type'))]);
+            $query->whereJsonContains('work_types', $request->input('work_type'));
         }
 
         if ($request->filled('district')) {
-            $query->whereRaw('JSON_CONTAINS(districts, ?)', [json_encode($request->input('district'))]);
+            $query->whereJsonContains('districts', $request->input('district'));
         }
 
         if ($request->filled('position')) {
-            $query->whereRaw('JSON_CONTAINS(positions, ?)', [json_encode($request->input('position'))]);
+            $query->whereJsonContains('positions', $request->input('position'));
         }
 
         $resumes = $query->orderByDesc('created_at')->paginate(20);
@@ -48,7 +48,7 @@ class ResumeController extends Controller
     public function parse(Request $request): JsonResponse
     {
         $request->validate([
-            'text'         => 'required|string|max:5000',
+            'text' => 'required|string|max:5000',
             'image_base64' => 'nullable|string',
         ]);
 
@@ -66,31 +66,31 @@ class ResumeController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name'              => 'nullable|string|max:100',
-            'phone'             => 'nullable|string|max:20',
-            'gender'            => 'nullable|integer|in:0,1,2',
-            'age'               => 'nullable|integer|min:15|max:99',
-            'districts'         => 'nullable|array',
-            'work_types'        => 'nullable|array',
-            'positions'         => 'nullable|array',
-            'experience_years'  => 'nullable|numeric|min:0|max:50',
-            'salary_min'        => 'nullable|integer|min:0',
-            'salary_max'        => 'nullable|integer|min:0',
-            'salary_unit'       => 'nullable|integer|in:1,2,3',
-            'education'         => 'nullable|integer|in:1,2,3,4',
+            'name' => 'nullable|string|max:100',
+            'phone' => 'nullable|string|max:20',
+            'gender' => 'nullable|integer|in:0,1,2',
+            'age' => 'nullable|integer|min:15|max:99',
+            'districts' => 'nullable|array',
+            'work_types' => 'nullable|array',
+            'positions' => 'nullable|array',
+            'experience_years' => 'nullable|numeric|min:0|max:50',
+            'salary_min' => 'nullable|integer|min:0',
+            'salary_max' => 'nullable|integer|min:0',
+            'salary_unit' => 'nullable|integer|in:1,2,3',
+            'education' => 'nullable|integer|in:1,2,3,4',
             'availability_date' => 'nullable|date',
-            'languages'         => 'nullable|array',
-            'skills'            => 'nullable|array',
-            'raw_text'          => 'nullable|string|max:10000',
-            'source'            => 'nullable|integer|in:1,2,3',
-            'status'            => 'nullable|integer|in:0,1,2,3',
-            'notes'             => 'nullable|string|max:2000',
+            'languages' => 'nullable|array',
+            'skills' => 'nullable|array',
+            'raw_text' => 'nullable|string|max:10000',
+            'source' => 'nullable|integer|in:1,2,3',
+            'status' => 'nullable|integer|in:0,1,2,3',
+            'notes' => 'nullable|string|max:2000',
         ]);
 
         $resume = Resume::create(array_merge($data, [
             'organization_id' => 1,
-            'created_by'      => $request->user()->id,
-            'source'          => $data['source'] ?? 2,
+            'created_by' => $request->user()->id,
+            'source' => $data['source'] ?? 2,
         ]));
 
         return response()->json(['data' => $resume], 201);
@@ -103,13 +103,13 @@ class ResumeController extends Controller
     public function batch(Request $request): JsonResponse
     {
         $request->validate([
-            'items'              => 'required|array|min:1|max:50',
-            'items.*.text'       => 'required|string|max:5000',
+            'items' => 'required|array|min:1|max:50',
+            'items.*.text' => 'required|string|max:5000',
             'items.*.image_base64' => 'nullable|string',
         ]);
 
         $success = 0;
-        $failed  = 0;
+        $failed = 0;
         $results = [];
 
         foreach ($request->input('items') as $item) {
@@ -125,9 +125,9 @@ class ResumeController extends Controller
 
                 $resume = Resume::create(array_merge($parsed, [
                     'organization_id' => 1,
-                    'created_by'      => $request->user()->id,
-                    'raw_text'        => $item['text'],
-                    'source'          => 2,
+                    'created_by' => $request->user()->id,
+                    'raw_text' => $item['text'],
+                    'source' => 2,
                 ]));
 
                 $success++;
@@ -139,9 +139,9 @@ class ResumeController extends Controller
         }
 
         return response()->json([
-            'total'   => count($request->input('items')),
+            'total' => count($request->input('items')),
             'success' => $success,
-            'failed'  => $failed,
+            'failed' => $failed,
             'results' => $results,
         ]);
     }
@@ -164,9 +164,9 @@ class ResumeController extends Controller
         $resumes = $query->orderByDesc('created_at')->limit(50)->get();
 
         return response()->json([
-            'data'     => $resumes,
+            'data' => $resumes,
             'criteria' => $criteria,
-            'total'    => $resumes->count(),
+            'total' => $resumes->count(),
         ]);
     }
 
@@ -184,23 +184,23 @@ class ResumeController extends Controller
     public function update(Request $request, Resume $resume): JsonResponse
     {
         $data = $request->validate([
-            'name'              => 'nullable|string|max:100',
-            'phone'             => 'nullable|string|max:20',
-            'gender'            => 'nullable|integer|in:0,1,2',
-            'age'               => 'nullable|integer|min:15|max:99',
-            'districts'         => 'nullable|array',
-            'work_types'        => 'nullable|array',
-            'positions'         => 'nullable|array',
-            'experience_years'  => 'nullable|numeric|min:0|max:50',
-            'salary_min'        => 'nullable|integer|min:0',
-            'salary_max'        => 'nullable|integer|min:0',
-            'salary_unit'       => 'nullable|integer|in:1,2,3',
-            'education'         => 'nullable|integer|in:1,2,3,4',
+            'name' => 'nullable|string|max:100',
+            'phone' => 'nullable|string|max:20',
+            'gender' => 'nullable|integer|in:0,1,2',
+            'age' => 'nullable|integer|min:15|max:99',
+            'districts' => 'nullable|array',
+            'work_types' => 'nullable|array',
+            'positions' => 'nullable|array',
+            'experience_years' => 'nullable|numeric|min:0|max:50',
+            'salary_min' => 'nullable|integer|min:0',
+            'salary_max' => 'nullable|integer|min:0',
+            'salary_unit' => 'nullable|integer|in:1,2,3',
+            'education' => 'nullable|integer|in:1,2,3,4',
             'availability_date' => 'nullable|date',
-            'languages'         => 'nullable|array',
-            'skills'            => 'nullable|array',
-            'status'            => 'nullable|integer|in:0,1,2,3',
-            'notes'             => 'nullable|string|max:2000',
+            'languages' => 'nullable|array',
+            'skills' => 'nullable|array',
+            'status' => 'nullable|integer|in:0,1,2,3',
+            'notes' => 'nullable|string|max:2000',
         ]);
 
         $resume->update($data);
@@ -223,7 +223,7 @@ class ResumeController extends Controller
         if (! empty($criteria['districts'])) {
             $query->where(function (Builder $q) use ($criteria): void {
                 foreach ($criteria['districts'] as $district) {
-                    $q->orWhereRaw('JSON_CONTAINS(districts, ?)', [json_encode($district)]);
+                    $q->orWhereJsonContains('districts', $district);
                 }
             });
         }
@@ -231,7 +231,7 @@ class ResumeController extends Controller
         if (! empty($criteria['work_types'])) {
             $query->where(function (Builder $q) use ($criteria): void {
                 foreach ($criteria['work_types'] as $wt) {
-                    $q->orWhereRaw('JSON_CONTAINS(work_types, ?)', [json_encode($wt)]);
+                    $q->orWhereJsonContains('work_types', $wt);
                 }
             });
         }
@@ -239,8 +239,8 @@ class ResumeController extends Controller
         if (! empty($criteria['positions'])) {
             $query->where(function (Builder $q) use ($criteria): void {
                 foreach ($criteria['positions'] as $pos) {
-                    $q->orWhereRaw('JSON_CONTAINS(positions, ?)', [json_encode($pos)])
-                      ->orWhereRaw('JSON_SEARCH(positions, "one", ?) IS NOT NULL', ["%{$pos}%"]);
+                    $q->orWhereJsonContains('positions', $pos)
+                        ->orWhereRaw('CAST(positions AS text) LIKE ?', ["%{$pos}%"]);
                 }
             });
         }
@@ -249,7 +249,7 @@ class ResumeController extends Controller
             $query->where(function (Builder $q) use ($criteria): void {
                 foreach ($criteria['keywords'] as $kw) {
                     $q->orWhere('notes', 'like', "%{$kw}%")
-                      ->orWhere('raw_text', 'like', "%{$kw}%");
+                        ->orWhere('raw_text', 'like', "%{$kw}%");
                 }
             });
         }

@@ -188,7 +188,7 @@ User input (text / image base64 / voice file)
 
 ### Database
 
-MySQL. Connection: `laravel` / `laravel_password` / `laravel_app`.
+PostgreSQL 14. Connection: `laravel` / `laravel_password` / `laravel_app`（`127.0.0.1:5432`）。
 
 MVP seed data: organization_id=1, region_id=1, store_id=1 (硬编码在 controllers，待权限系统接入后动态化).
 
@@ -255,7 +255,7 @@ function todayStr() {
 // ❌ 错误（UTC 日期）
 return new Date().toISOString().slice(0, 10)
 ```
-后端时区为 `Asia/Shanghai`，MySQL 也使用 SYSTEM（CST），日期存储和查询均基于本地时间。
+后端时区为 `Asia/Shanghai`，PostgreSQL 也使用本地时区（CST），日期存储和查询均基于本地时间。
 
 ---
 

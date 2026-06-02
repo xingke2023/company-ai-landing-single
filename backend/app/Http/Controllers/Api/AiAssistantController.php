@@ -5,7 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AiMessage;
 use App\Models\AiSession;
+use App\Models\Customer;
+use App\Models\CustomerFollowUp;
+use App\Models\CustomerOrder;
 use App\Models\DailyOperationLog;
+use App\Models\DamageRecord;
 use App\Models\Inventory;
 use App\Models\InventoryDailySnapshot;
 use App\Models\InventoryTransaction;
@@ -15,7 +19,6 @@ use App\Models\PurchaseOrderItem;
 use App\Models\SalesDailySummary;
 use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
-use App\Models\DamageRecord;
 use App\Models\SupplierRefundClaim;
 use App\Models\WeatherLog;
 use App\Services\AiService;
@@ -93,7 +96,7 @@ class AiAssistantController extends Controller
         // 分发到库存
         $operations = [];
         $intent = $parsed['intent'] ?? 'other';
-        $queryIntents = ['inventory_query', 'sales_today_query', 'daily_overview_query', 'purchase_orders_query', 'daily_logs_query', 'weather_query', 'refund_claims_query', 'suggestions_query', 'product_query'];
+        $queryIntents = ['inventory_query', 'sales_today_query', 'daily_overview_query', 'purchase_orders_query', 'daily_logs_query', 'weather_query', 'refund_claims_query', 'suggestions_query', 'product_query', 'customer_query', 'customer_orders_query'];
         $isQuery = in_array($intent, $queryIntents);
         $isOp = ! in_array($intent, ['other', ...$queryIntents]);
 
@@ -102,7 +105,7 @@ class AiAssistantController extends Controller
         $cardData = null;
         if ($isQuery) {
             $date = $parsed['date'] ?? now()->toDateString();
-            [$cardType, $cardData] = $this->fetchQueryData($intent, $session->store_id, $date, $parsed['items'] ?? []);
+            [$cardType, $cardData] = $this->fetchQueryData($intent, $session->store_id, $date, $parsed['items'] ?? [], $parsed['customer'] ?? []);
         }
 
         if ($isOp && ! empty($parsed['items'])) {
@@ -112,6 +115,11 @@ class AiAssistantController extends Controller
                 $request->user()->id,
                 $userMessage->id
             );
+        }
+
+        // 客户(CRM)写入类意图：单独分发（items 为空，不走库存）
+        if (in_array($intent, ['customer_add', 'follow_up_add'], true)) {
+            $operations = $this->dispatchCrm($intent, $parsed['customer'] ?? [], $session->store_id, $request->user()->id);
         }
 
         // 记录操作日志
@@ -213,7 +221,7 @@ class AiAssistantController extends Controller
 
         $operations = [];
         $intent = $parsed['intent'] ?? 'other';
-        $queryIntents = ['inventory_query', 'sales_today_query', 'daily_overview_query', 'purchase_orders_query', 'daily_logs_query', 'weather_query', 'refund_claims_query', 'suggestions_query', 'product_query'];
+        $queryIntents = ['inventory_query', 'sales_today_query', 'daily_overview_query', 'purchase_orders_query', 'daily_logs_query', 'weather_query', 'refund_claims_query', 'suggestions_query', 'product_query', 'customer_query', 'customer_orders_query'];
         $isQuery = in_array($intent, $queryIntents);
         $isOp = ! in_array($intent, ['other', ...$queryIntents]);
 
@@ -221,7 +229,7 @@ class AiAssistantController extends Controller
         $cardData = null;
         if ($isQuery) {
             $date = $parsed['date'] ?? now()->toDateString();
-            [$cardType, $cardData] = $this->fetchQueryData($intent, $session->store_id, $date, $parsed['items'] ?? []);
+            [$cardType, $cardData] = $this->fetchQueryData($intent, $session->store_id, $date, $parsed['items'] ?? [], $parsed['customer'] ?? []);
         }
 
         if ($isOp && ! empty($parsed['items'])) {
@@ -231,6 +239,11 @@ class AiAssistantController extends Controller
                 $request->user()->id,
                 $userMessage->id
             );
+        }
+
+        // 客户(CRM)写入类意图：单独分发（items 为空，不走库存）
+        if (in_array($intent, ['customer_add', 'follow_up_add'], true)) {
+            $operations = $this->dispatchCrm($intent, $parsed['customer'] ?? [], $session->store_id, $request->user()->id);
         }
 
         // 记录今日操作日志
@@ -425,7 +438,7 @@ class AiAssistantController extends Controller
                 // 损耗：建损耗记录（自动关联最近一笔进货单/供应商）
                 if ($action === 'out') {
                     $reason = $item['reason'] ?? '变质';
-                    $poItem = \App\Models\PurchaseOrderItem::whereHas('purchaseOrder', fn ($q) => $q->where('store_id', $storeId)->where('status', 5))
+                    $poItem = PurchaseOrderItem::whereHas('purchaseOrder', fn ($q) => $q->where('store_id', $storeId)->where('status', 5))
                         ->where('product_id', $product->id)
                         ->orderByDesc('id')
                         ->first();
@@ -504,7 +517,7 @@ class AiAssistantController extends Controller
     /**
      * 根据查询意图从 DB 取数据，返回 [card_type, card_data]。
      */
-    private function fetchQueryData(string $intent, int $storeId, string $date, array $parsedItems = []): array
+    private function fetchQueryData(string $intent, int $storeId, string $date, array $parsedItems = [], array $customer = []): array
     {
         return match ($intent) {
             'inventory_query' => [
@@ -691,8 +704,123 @@ class AiAssistantController extends Controller
                 ]]];
             })(),
 
+            'customer_query' => [
+                'customers',
+                (function () use ($storeId, $customer): array {
+                    $q = Customer::where('store_id', $storeId);
+                    $name = $customer['name'] ?? null;
+                    $phone = $customer['phone'] ?? null;
+                    if ($phone) {
+                        $q->where('phone', $phone);
+                    } elseif ($name) {
+                        $q->where('name', 'like', "%{$name}%");
+                    }
+
+                    return ['data' => $q->orderByDesc('total_spent')->limit(10)->get()
+                        ->map(fn (Customer $c) => [
+                            'id' => $c->id,
+                            'name' => $c->name,
+                            'phone' => $c->phone,
+                            'level' => $c->levelLabel(),
+                            'points' => $c->points,
+                            'total_spent' => $c->total_spent,
+                            'order_count' => $c->order_count,
+                            'tags' => $c->tags ?? [],
+                        ])->values()];
+                })(),
+            ],
+
+            'customer_orders_query' => [
+                'customer_orders',
+                (function () use ($storeId, $customer): array {
+                    $q = CustomerOrder::with('customer:id,name')->where('store_id', $storeId);
+                    $name = $customer['name'] ?? null;
+                    $phone = $customer['phone'] ?? null;
+                    if ($phone || $name) {
+                        $q->whereHas('customer', function ($sub) use ($name, $phone): void {
+                            if ($phone) {
+                                $sub->where('phone', $phone);
+                            } elseif ($name) {
+                                $sub->where('name', 'like', "%{$name}%");
+                            }
+                        });
+                    }
+
+                    return ['data' => $q->orderByDesc('created_at')->limit(15)->get()
+                        ->map(fn (CustomerOrder $o) => [
+                            'order_no' => $o->order_no,
+                            'customer_name' => $o->customer?->name ?? $o->customer_name,
+                            'type' => $o->typeLabel(),
+                            'status' => $o->statusLabel(),
+                            'total_amount' => $o->total_amount,
+                            'created_at' => $o->created_at?->toDateTimeString(),
+                        ])->values()];
+                })(),
+            ],
+
             default => [null, null],
         };
+    }
+
+    /**
+     * 客户(CRM)写入类意图分发：新增顾客 / 加跟进。
+     * 返回的 operation 带 product_id=null、qty=0，兼容上层操作日志循环（不写库存）。
+     *
+     * @param  array<string, mixed>  $customer
+     * @return array<int, array<string, mixed>>
+     */
+    private function dispatchCrm(string $intent, array $customer, int $storeId, int $operatorId): array
+    {
+        $name = trim((string) ($customer['name'] ?? ''));
+        $phone = trim((string) ($customer['phone'] ?? '')) ?: null;
+
+        if ($intent === 'customer_add') {
+            if ($name === '') {
+                return [];
+            }
+            $record = Customer::firstOrCreate(
+                ['store_id' => $storeId, 'phone' => $phone, 'name' => $name],
+                ['source' => 2, 'created_by' => $operatorId]
+            );
+
+            return [[
+                'type' => 'customer_add',
+                'customer_id' => $record->id,
+                'name' => $record->name,
+                'product_id' => null,
+                'qty_before' => 0,
+                'qty_after' => 0,
+            ]];
+        }
+
+        // follow_up_add
+        $content = trim((string) ($customer['content'] ?? ''));
+        if ($name === '' || $content === '') {
+            return [];
+        }
+        $target = Customer::where('store_id', $storeId)
+            ->when($phone, fn ($q) => $q->where('phone', $phone), fn ($q) => $q->where('name', 'like', "%{$name}%"))
+            ->first();
+        if (! $target) {
+            return [];
+        }
+        $fu = CustomerFollowUp::create([
+            'customer_id' => $target->id,
+            'store_id' => $storeId,
+            'type' => 1,
+            'content' => $content,
+            'follow_up_at' => now(),
+            'operator_id' => $operatorId,
+        ]);
+
+        return [[
+            'type' => 'follow_up_add',
+            'customer_id' => $target->id,
+            'follow_up_id' => $fu->id,
+            'product_id' => null,
+            'qty_before' => 0,
+            'qty_after' => 0,
+        ]];
     }
 
     /**

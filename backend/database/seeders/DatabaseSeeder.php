@@ -36,6 +36,9 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
+        // 基础租户骨架：组织 / 区域 / 默认门店（store_id=1）
+        $this->call(OrgStoreSeeder::class);
+
         // 小程序聊天页底部快捷按钮（后台可配）
         $this->call(QuickActionSeeder::class);
 

@@ -20,6 +20,8 @@ type Fn = { label: string; emoji: string; desc: string; href?: string; action?: 
 const FUNCTIONS: Fn[] = [
   { label: '今日库存', emoji: '📦', desc: '当前库存 / 流水', href: '/inventory', bg: 'bg-emerald-50' },
   { label: '销售报表', emoji: '📊', desc: '每日销售明细', href: '/sales-report', bg: 'bg-orange-50' },
+  { label: '顾客管理', emoji: '👤', desc: '会员档案 / 跟进', href: '/crm', bg: 'bg-sky-50' },
+  { label: '顾客订单', emoji: '🧾', desc: '预订 / 送货 / 团购', href: '/orders', bg: 'bg-rose-50' },
   { label: '问 AI 助手', emoji: '💬', desc: '进货/损耗/建议/天气', action: 'chat', bg: 'bg-violet-50' },
 ]
 

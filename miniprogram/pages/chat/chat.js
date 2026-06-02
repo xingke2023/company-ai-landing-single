@@ -150,6 +150,33 @@ function cardToMarkdown(cardType, cardData) {
     return lines.join('\n');
   }
 
+  if (cardType === 'customers') {
+    list = d.data || (Array.isArray(d) ? d : []);
+    if (!list.length) { return '没有找到匹配的顾客。'; }
+    lines.push('👤 **顾客档案**');
+    for (i = 0; i < list.length; i++) {
+      var cu = list[i];
+      lines.push('- **' + (cu.name || '-') + '**' + (cu.phone ? ' `' + cu.phone + '`' : '') +
+        ' ｜ ' + (cu.level || '普通') + ' ｜ 消费¥' + (cu.total_spent || 0) +
+        ' ｜ 订单' + (cu.order_count || 0) + ' ｜ 积分' + (cu.points || 0));
+    }
+    return lines.join('\n');
+  }
+
+  if (cardType === 'customer_orders') {
+    list = d.data || (Array.isArray(d) ? d : []);
+    if (!list.length) { return '暂无顾客订单。'; }
+    lines.push('🧾 **顾客订单**');
+    for (i = 0; i < list.length; i++) {
+      var co = list[i];
+      var cot = co.created_at ? String(co.created_at).replace('T', ' ').slice(5, 16) : '';
+      lines.push('- `' + (co.order_no || '') + '` ' + (co.customer_name || '散客') +
+        ' ｜ ' + (co.type || '') + ' ｜ ' + (co.status || '') + ' ｜ ¥' + (co.total_amount || 0) +
+        (cot ? ' ｜ ' + cot : ''));
+    }
+    return lines.join('\n');
+  }
+
   return '';
 }
 
@@ -444,6 +471,13 @@ Page({
         items: [
           { key: 'purchase-history', emoji: '📋', label: '历史进货单记录', desc: '看历史上传的单据', route: '/pages/purchase-orders/purchase-orders' },
           { key: 'purchase-upload',  emoji: '📤', label: '上传进货单',     desc: '拍照/相册/文件 AI 识别入库', route: '/pages/purchase-upload/purchase-upload' },
+        ],
+      },
+      {
+        key: 'crm', emoji: '👤', label: '客户管理', badge: 'NEW',
+        items: [
+          { key: 'crm-customers', emoji: '👤', label: '顾客档案', desc: '会员/跟进/消费记录', route: '/pages/report/report?path=%2Fcrm&title=%E9%A1%BE%E5%AE%A2%E7%AE%A1%E7%90%86' },
+          { key: 'crm-orders',    emoji: '🧾', label: '顾客订单', desc: '预订/送货/团购/自提', route: '/pages/report/report?path=%2Forders&title=%E9%A1%BE%E5%AE%A2%E8%AE%A2%E5%8D%95' },
         ],
       },
       {

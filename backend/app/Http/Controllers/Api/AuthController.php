@@ -81,33 +81,24 @@ class AuthController extends Controller
             ->unique()
             ->values();
 
-        // 管理员若未绑定任何门店，视为可访问所有门店（需指定 store_id）
-        if ($user->is_admin && $accessibleStoreIds->isEmpty()) {
-            $storeId = $request->integer('store_id') ?: null;
-            if (! $storeId) {
-                return response()->json([
-                    'message' => '管理员账号请指定 store_id',
-                ], 422);
-            }
-        } elseif ($accessibleStoreIds->isEmpty()) {
-            return response()->json(['message' => '该账号未关联任何门店，请联系管理员'], 403);
-        } elseif ($accessibleStoreIds->count() === 1) {
-            // 只属于一个门店，自动选中
-            $storeId = $accessibleStoreIds->first();
-        } else {
-            // 属于多个门店，必须指定
-            $storeId = $request->integer('store_id') ?: null;
+        // 「暂不区分门店」：登录不再强制选门店。
+        // 优先级：显式指定 store_id → 唯一门店 → 默认门店（若在可访问列表内）→ 可访问的第一个 → 默认门店。
+        $defaultStoreId = (int) config('store.default_id', 1);
+        $requestedStoreId = $request->integer('store_id') ?: null;
 
-            if (! $storeId) {
-                return response()->json([
-                    'message' => '该账号属于多个门店，请指定 store_id',
-                    'stores' => $accessibleStoreIds,
-                ], 422);
-            }
-
-            if (! $accessibleStoreIds->contains($storeId)) {
+        if ($requestedStoreId) {
+            // 显式指定：非管理员且有门店绑定时，必须在可访问列表内
+            if (! $user->is_admin && $accessibleStoreIds->isNotEmpty() && ! $accessibleStoreIds->contains($requestedStoreId)) {
                 return response()->json(['message' => '无权访问该门店'], 403);
             }
+            $storeId = $requestedStoreId;
+        } elseif ($accessibleStoreIds->count() === 1) {
+            $storeId = $accessibleStoreIds->first();
+        } elseif ($accessibleStoreIds->isNotEmpty()) {
+            $storeId = $accessibleStoreIds->contains($defaultStoreId) ? $defaultStoreId : $accessibleStoreIds->first();
+        } else {
+            // 无任何门店绑定（含未绑店的管理员）：回退默认门店
+            $storeId = $defaultStoreId;
         }
 
         // 将 store_id 编码进 token ability，后续请求从 token 中读取
