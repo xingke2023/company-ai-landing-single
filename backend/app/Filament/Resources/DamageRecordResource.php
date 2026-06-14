@@ -149,6 +149,13 @@ class DamageRecordResource extends Resource
         return [];
     }
 
+    public static function getWidgets(): array
+    {
+        return [
+            DamageRecordResource\Widgets\DamageStatsOverview::class,
+        ];
+    }
+
     public static function getPages(): array
     {
         return [

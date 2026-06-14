@@ -13,9 +13,12 @@ var clearAuth = req.clearAuth;
  * @param {object} opts  { imageBase64?, sessionId? }  imageBase64 为原始 base64（无 data: 前缀）
  * @returns {Promise<object>} { reply, intent, operations, card_type, card_data, session_id }
  */
+// baseOverride: 外部行业的 AI 接口走外部后端，空则用默认后端
+// pathOverride: 外部行业 AI 接口路径（如 /api/chat/message），空则默认 /ai/message
 function aiMessage(text, opts) {
   opts = opts || {};
-  return request('/ai/message', {
+  var path = opts.pathOverride || '/ai/message';
+  return request(path, {
     method: 'POST',
     data: {
       text: text || '',
@@ -23,31 +26,44 @@ function aiMessage(text, opts) {
       session_id: opts.sessionId || undefined,
     },
     timeout: 90000,
+    baseOverride: opts.baseOverride || undefined,
+    tokenOverride: opts.tokenOverride !== undefined ? opts.tokenOverride : undefined,
   });
 }
 
 /**
- * 语音 AI 消息 —— 舌尖后端 POST /ai/voice（multipart，字段名 audio）
+ * 语音 AI 消息 —— POST /ai/voice（multipart，字段名 audio）
  * @param {string} filePath  录音临时文件路径（mp3）
- * @param {number} [sessionId]
+ * @param {object|number} [opts]  { sessionId?, baseOverride?, tokenOverride? }；
+ *        兼容旧用法：直接传 sessionId 数字。
+ *        外部行业（如进销存CRM）传 baseOverride 走外部后端，tokenOverride 可为空（公开接口）。
  * @returns {Promise<object>} { reply, intent, session_id, ... }
  */
-function aiVoice(filePath, sessionId) {
+function aiVoice(filePath, opts) {
+  // 兼容旧签名 aiVoice(filePath, sessionId)
+  if (typeof opts === 'number' || typeof opts === 'string') {
+    opts = { sessionId: opts };
+  }
+  opts = opts || {};
   return new Promise(function (resolve, reject) {
     var app = getApp();
-    var token = app.globalData.token || '';
-    var base = app.globalData.apiBaseUrl;
-    if (!token) { reject(new Error('Unauthenticated')); return; }
+    var external = !!opts.baseOverride;
+    var base = opts.baseOverride || app.globalData.apiBaseUrl;
+    // 外部行业用服务账号 token（可空，公开接口）；本地行业用登录 token
+    var token = external
+      ? (opts.tokenOverride || '')
+      : (app.globalData.token || '');
+    // 仅本地行业要求已登录；外部公开接口允许无 token
+    if (!external && !token) { reject(new Error('Unauthenticated')); return; }
     var formData = {};
-    if (sessionId) { formData.session_id = sessionId; }
+    if (opts.sessionId) { formData.session_id = opts.sessionId; }
+    var header = { Accept: 'application/json' };
+    if (token) { header.Authorization = 'Bearer ' + token; }
     wx.uploadFile({
       url: base + '/ai/voice',
       filePath: filePath,
       name: 'audio',
-      header: {
-        Authorization: 'Bearer ' + token,
-        Accept: 'application/json',
-      },
+      header: header,
       formData: formData,
       timeout: 120000,
       success: function (res) {
@@ -209,13 +225,21 @@ function me() {
 }
 
 // 聊天页底部快捷按钮配置（后台可配）——返回 { data: [ ...quickActions ] }
-function quickActions() {
-  return request('/quick-actions', { method: 'GET', timeout: 15000 });
+// industry: 所选行业 slug；baseOverride: 外部后端 base（如 app2），空则用默认后端
+function quickActions(industry, baseOverride) {
+  var qs = industry ? ('?industry=' + encodeURIComponent(industry)) : '';
+  return request('/quick-actions' + qs, { method: 'GET', timeout: 15000, baseOverride: baseOverride });
+}
+
+// 公开行业列表（启动「选择行业」页）——无需登录，返回 { data: [ { slug, name, emoji, title, description, api_base } ] }
+function industries() {
+  return request('/industries', { method: 'GET', timeout: 15000 });
 }
 
 // 公开应用配置（小程序标题等品牌文案）——无需登录，返回 { data: { key: value } }
-function appConfig() {
-  return request('/app-config', { method: 'GET', timeout: 15000 });
+// baseOverride: 外部后端 base（如 app2），空则用默认后端
+function appConfig(baseOverride) {
+  return request('/app-config', { method: 'GET', timeout: 15000, baseOverride: baseOverride });
 }
 
 // 退出登录：尽力通知后端使 token 失效，无论成败都清掉本地登录态
@@ -230,6 +254,7 @@ module.exports = {
   me: me,
   logout: logout,
   quickActions: quickActions,
+  industries: industries,
   appConfig: appConfig,
   aiMessage: aiMessage,
   aiVoice: aiVoice,

@@ -4,22 +4,24 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\QuickActionResource\Pages;
 use App\Filament\Resources\QuickActionResource\RelationManagers\ItemsRelationManager;
+use App\Models\Industry;
+use App\Models\MenuTemplate;
 use App\Models\QuickAction;
+use Filament\Actions;
 use Filament\Forms;
+use Filament\Resources\Resource;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Actions;
 use Filament\Tables\Table;
 
 class QuickActionResource extends Resource
 {
     protected static ?string $model = QuickAction::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-squares-2x2';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-squares-2x2';
 
-    protected static string | \UnitEnum | null $navigationGroup = '系统';
+    protected static string|\UnitEnum|null $navigationGroup = '系统';
 
     protected static ?string $navigationLabel = '快捷按钮';
 
@@ -40,6 +42,7 @@ class QuickActionResource extends Resource
                         'web' => '发 AI 摘要 + 打开网页（web）',
                         'open' => '直接打开网页（open）',
                         'menu' => '弹出子菜单（menu）',
+                        'home' => '返回主页 / 切换行业（home）',
                     ])
                     ->default('prompt')
                     ->required()
@@ -113,6 +116,26 @@ class QuickActionResource extends Resource
                     ->nullable()
                     ->placeholder('全门店通用')
                     ->helperText('留空 = 所有门店都显示'),
+
+                Forms\Components\Select::make('industry')
+                    ->label('所属行业')
+                    ->options(fn () => Industry::query()->orderBy('sort_order')->pluck('name', 'slug'))
+                    ->searchable()
+                    ->nullable()
+                    ->placeholder('全行业通用')
+                    ->helperText('留空 = 所有行业都显示（通用按钮）；否则属于该行业'),
+
+                Forms\Components\Select::make('menu_template_id')
+                    ->label('所属菜单模版')
+                    ->options(fn () => MenuTemplate::query()
+                        ->orderBy('industry')->orderBy('sort_order')
+                        ->get()
+                        ->mapWithKeys(fn (MenuTemplate $t) => [$t->id => $t->industry.' · '.$t->name])
+                        ->all())
+                    ->searchable()
+                    ->nullable()
+                    ->placeholder('不绑模版（通用按钮）')
+                    ->helperText('属于哪套菜单模版；通用按钮（返回主页/天气等）留空'),
             ]);
     }
 
@@ -130,15 +153,19 @@ class QuickActionResource extends Resource
                         'web' => '摘要+网页',
                         'open' => '打开网页',
                         'menu' => '子菜单',
+                        'home' => '返回主页',
                     ][$state] ?? $state)
                     ->color(fn ($state) => match ($state) {
                         'menu' => 'warning',
                         'open' => 'info',
                         'web' => 'success',
+                        'home' => 'danger',
                         default => 'gray',
                     }),
                 Tables\Columns\TextColumn::make('key')->label('key')->toggleable(),
                 Tables\Columns\TextColumn::make('store.name')->label('门店')->placeholder('全门店'),
+                Tables\Columns\TextColumn::make('industry')->label('行业')->badge()->placeholder('全行业'),
+                Tables\Columns\TextColumn::make('menuTemplate.name')->label('模版')->placeholder('通用')->toggleable(),
                 Tables\Columns\IconColumn::make('admin_only')->label('仅管理员')->boolean(),
                 Tables\Columns\IconColumn::make('enabled')->label('启用')->boolean(),
                 Tables\Columns\TextColumn::make('sort_order')->label('排序')->sortable(),
@@ -151,7 +178,18 @@ class QuickActionResource extends Resource
                         'web' => '摘要+网页',
                         'open' => '打开网页',
                         'menu' => '子菜单',
+                        'home' => '返回主页',
                     ]),
+                Tables\Filters\SelectFilter::make('industry')
+                    ->label('行业')
+                    ->options(fn () => Industry::query()->orderBy('sort_order')->pluck('name', 'slug')),
+                Tables\Filters\SelectFilter::make('menu_template_id')
+                    ->label('菜单模版')
+                    ->options(fn () => MenuTemplate::query()
+                        ->orderBy('industry')->orderBy('sort_order')
+                        ->get()
+                        ->mapWithKeys(fn (MenuTemplate $t) => [$t->id => $t->industry.' · '.$t->name])
+                        ->all()),
                 Tables\Filters\TernaryFilter::make('enabled')->label('启用'),
                 Tables\Filters\TernaryFilter::make('admin_only')->label('仅管理员'),
             ])

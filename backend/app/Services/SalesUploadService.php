@@ -107,8 +107,7 @@ PROMPT;
                     ['role' => 'system', 'content' => $systemPrompt],
                     ['role' => 'user', 'content' => "以下是Excel导出的销售明细数据，请解析：\n\n{$rowsText}"],
                 ],
-                'temperature' => 0.1,
-                'response_format' => ['type' => 'json_object'],
+                'max_tokens' => 4000,
             ]);
 
         if ($response->failed()) {
@@ -215,8 +214,7 @@ PROMPT;
                             ['type' => 'image_url', 'image_url' => ['url' => 'data:image/jpeg;base64,'.$imageBase64]],
                         ]],
                     ],
-                    'temperature' => 0.1,
-                    'response_format' => ['type' => 'json_object'],
+                    'max_tokens' => 4000,
                 ]);
         } catch (\Throwable $e) {
             Log::error('SalesUpload image AI exception', ['error' => $e->getMessage()]);

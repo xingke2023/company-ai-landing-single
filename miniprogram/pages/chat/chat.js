@@ -150,33 +150,6 @@ function cardToMarkdown(cardType, cardData) {
     return lines.join('\n');
   }
 
-  if (cardType === 'customers') {
-    list = d.data || (Array.isArray(d) ? d : []);
-    if (!list.length) { return '没有找到匹配的顾客。'; }
-    lines.push('👤 **顾客档案**');
-    for (i = 0; i < list.length; i++) {
-      var cu = list[i];
-      lines.push('- **' + (cu.name || '-') + '**' + (cu.phone ? ' `' + cu.phone + '`' : '') +
-        ' ｜ ' + (cu.level || '普通') + ' ｜ 消费¥' + (cu.total_spent || 0) +
-        ' ｜ 订单' + (cu.order_count || 0) + ' ｜ 积分' + (cu.points || 0));
-    }
-    return lines.join('\n');
-  }
-
-  if (cardType === 'customer_orders') {
-    list = d.data || (Array.isArray(d) ? d : []);
-    if (!list.length) { return '暂无顾客订单。'; }
-    lines.push('🧾 **顾客订单**');
-    for (i = 0; i < list.length; i++) {
-      var co = list[i];
-      var cot = co.created_at ? String(co.created_at).replace('T', ' ').slice(5, 16) : '';
-      lines.push('- `' + (co.order_no || '') + '` ' + (co.customer_name || '散客') +
-        ' ｜ ' + (co.type || '') + ' ｜ ' + (co.status || '') + ' ｜ ¥' + (co.total_amount || 0) +
-        (cot ? ' ｜ ' + cot : ''));
-    }
-    return lines.join('\n');
-  }
-
   return '';
 }
 
@@ -435,9 +408,12 @@ Page({
     logging: false,
     loginForm: { username: '', password: '' },
 
+    externalMode: false,          // 外部行业：菜单/AI 走外部后端，JWT 来自 industry.apiToken
+    mediaEnabled: false,          // 聊天是否显示语音/拍照/相册/文件输入（本地行业或 ai_media 行业）
+
     msgs: [],
     typing: false,
-    fontSize: 'md',
+    fontSize: 'lg',
 
     chatInput: '',
     aiBusy: false,
@@ -474,13 +450,6 @@ Page({
         ],
       },
       {
-        key: 'crm', emoji: '👤', label: '客户管理', badge: 'NEW',
-        items: [
-          { key: 'crm-customers', emoji: '👤', label: '顾客档案', desc: '会员/跟进/消费记录', route: '/pages/report/report?path=%2Fcrm&title=%E9%A1%BE%E5%AE%A2%E7%AE%A1%E7%90%86' },
-          { key: 'crm-orders',    emoji: '🧾', label: '顾客订单', desc: '预订/送货/团购/自提', route: '/pages/report/report?path=%2Forders&title=%E9%A1%BE%E5%AE%A2%E8%AE%A2%E5%8D%95' },
-        ],
-      },
-      {
         key: 'report', emoji: '📊', label: '经营查询', badge: '',
         items: [
           { key: 'overview',  emoji: '📊', label: '每日营运概况', desc: '往日库存/进货/已售/售罄', route: '/pages/report/report' },
@@ -500,20 +469,42 @@ Page({
 
     // 经营报表 — 锚定在 chip 上方的 popover
     reportMenuOpen: false,
+    reportMenuKey: '',
     reportMenuItems: [],
     reportMenuStyle: '',     // popover 容器定位 (px)
     reportMenuArrowStyle: '',// 小三角横向偏移 (px)
   },
 
   onLoad: function () {
+    var app = getApp();
+
+    // 必须先选行业：未选则回「选择行业」页（每次进入都要选，industry 仅会话级）
+    if (!app.globalData.industry || !app.globalData.industry.slug) {
+      wx.redirectTo({ url: '/pages/industry/industry' });
+      return;
+    }
+
     var sys = getWin();
     this.setData({
       statusBarHeight: sys.statusBarHeight || 20,
       msgsHeight: (sys.windowHeight || 600) - 140,
     });
 
-    var app = getApp();
     this._sessionId = null;
+
+    var ind = app.globalData.industry;
+    // 外部行业（如进销存及CRM）：菜单/标题/接口走外部后端（app2），是纯菜单启动器，
+    // 无 AI、不依赖本项目登录；隐藏输入框/登录表单，菜单按钮 web-view 打开外部页。
+    var externalMode = !!(ind && ind.apiBase);
+    // mediaEnabled：聊天是否显示语音/拍照/相册/文件输入。
+    // 本地行业(生鲜)默认开；外部行业(如进销存CRM)需 ai_media=true 才开。
+    var mediaEnabled = !externalMode || !!(ind && ind.aiMedia);
+    this.setData({ externalMode: externalMode, mediaEnabled: mediaEnabled });
+
+    // 标题优先用所选行业的品牌标题（app_config 作兜底默认）
+    if (ind.title) {
+      this.setData({ appTitle: ind.title });
+    }
 
     // 应用配置（标题等）——公开接口，登录前也拉取
     this._loadAppConfig();
@@ -521,6 +512,19 @@ Page({
     // 开启右上角「…」菜单里的转发给朋友 / 分享到朋友圈
     if (wx.showShareMenu) {
       wx.showShareMenu({ withShareTicket: false, menus: ['shareAppMessage', 'shareTimeline'] });
+    }
+
+    if (externalMode) {
+      this.setData({ user: null });
+      if (!ind.apiToken) {
+        // 后台未配置服务账号 token，提示管理员
+        this._pushAi('⚠️ 此行业尚未配置服务账号，请联系管理员在后台填写「外部服务账号 Token」。');
+        wx.nextTick(this._recomputeMsgsHeight.bind(this));
+      } else {
+        this._greetExternal();
+      }
+      this._loadQuickActions();
+      return;
     }
 
     // 只有 token + user 都在才算登录；并后台校验 token 是否仍有效
@@ -533,6 +537,17 @@ Page({
       this.setData({ user: null });
     }
     // 未登录则停留在底部登录表单，等待用户输入账号密码
+  },
+
+  // 外部行业欢迎语
+  _greetExternal: function () {
+    var app = getApp();
+    var ind = app.globalData.industry || {};
+    // 优先用后台配置的行业欢迎语，留空再用通用兜底
+    var greeting = ind.greeting
+      || ('欢迎使用 ' + (ind.title || '外部行业') + '！可点菜单进入各功能，也可在输入框直接查询数据。');
+    this._pushAi(greeting);
+    wx.nextTick(this._recomputeMsgsHeight.bind(this));
   },
 
   // 校验缓存的 token 是否仍有效，失效则清登录态回登录表单（避免"假登录")
@@ -549,9 +564,22 @@ Page({
     });
   },
 
-  // 拉取应用配置（标题等）；失败则保留 data 里的默认标题
+  // 拉取应用配置（标题等）；失败则保留 data 里的默认标题。
+  // 若已选行业且带品牌标题，则以行业标题为准，不被全局 miniprogram_title 覆盖。
   _loadAppConfig: function () {
     var self = this;
+    var ind = getApp().globalData.industry;
+    // 外部行业：标题由外部后端（app2）设置，从其 app-config 拉取
+    if (ind && ind.apiBase) {
+      api.appConfig(ind.apiBase).then(function (res) {
+        var cfg = (res && res.data) || {};
+        if (cfg.miniprogram_title) {
+          self.setData({ appTitle: cfg.miniprogram_title });
+        }
+      }).catch(function () { /* 保留行业默认标题 */ });
+      return;
+    }
+    if (ind && ind.title) { return; } // 行业标题优先，跳过全局配置
     api.appConfig().then(function (res) {
       var cfg = (res && res.data) || {};
       if (cfg.miniprogram_title) {
@@ -560,10 +588,13 @@ Page({
     }).catch(function () { /* 保留默认标题 */ });
   },
 
-  // 从后台拉取底部快捷按钮配置；失败/空则保留 data 里写死的默认数组（避免空白）
+  // 从后台拉取底部快捷按钮配置（按所选行业过滤）；失败/空则保留 data 里写死的默认数组（避免空白）
   _loadQuickActions: function () {
     var self = this;
-    api.quickActions().then(function (res) {
+    var ind = getApp().globalData.industry;
+    var slug = (ind && ind.slug) || '';
+    var base = (ind && ind.apiBase) || ''; // 外部行业把菜单请求指向 app2
+    api.quickActions(slug, base).then(function (res) {
       var list = res && res.data;
       if (list && list.length) {
         self.setData({ quickActions: list });
@@ -612,9 +643,13 @@ Page({
   _greetLoggedIn: function (user) {
     var name = (user && user.name) || '老板';
     var self = this;
+    var ind = getApp().globalData.industry || {};
+    // 行业欢迎语：后台 industries.greeting 配置；留空用「我是{title}」通用兜底
+    var greeting = ind.greeting
+      || ('我是 ' + (ind.title || 'AI 助手') + '\n\n点下面菜单或直接在输入框跟我说，我来帮你处理。');
     self._pushAi('嗨，' + name + '！👋 欢迎回来～', 600);
     setTimeout(function () {
-      self._pushAi('我是舌尖香港 · AI 店长助手 🥬\n\n直接在下面输入框跟我说，我能帮你：\n📦 查库存 / 报剩余\n💰 录销售 / 查今日销售\n🚚 记进货\n🌦️ 查天气', 1100);
+      self._pushAi(greeting, 1100);
     }, 1500);
   },
 
@@ -641,6 +676,22 @@ Page({
       this._openReportMenu(action.items, key);
       return;
     }
+    // 返回主页（切换行业）：reLaunch 回落地页，清空页面栈，无需登录
+    if (action && action.home) {
+      wx.reLaunch({
+        url: action.home,
+        fail: function () { wx.showToast({ title: '返回失败', icon: 'none' }); },
+      });
+      return;
+    }
+    // 带 external 配置：web-view 打开完整外部 URL（如 app2 后台页），不拼 token、无需登录
+    if (action && action.external) {
+      wx.navigateTo({
+        url: '/pages/report/report?url=' + encodeURIComponent(action.external),
+        fail: function () { wx.showToast({ title: '打开失败', icon: 'none' }); },
+      });
+      return;
+    }
     // 带 route 配置：直接 navigateTo 小程序原生页（如损耗记录，不走 AI/web-view）
     if (action && action.route) {
       if (!this._requireLogin()) return;
@@ -652,6 +703,7 @@ Page({
     }
     // 带 open 配置：直接打开 web-view 页（功能聚合/我的等，不走 AI）
     if (action && action.open) {
+      if (!this._requireLogin()) { return; }
       var ou = '/pages/report/report?path=' + encodeURIComponent(action.open.path);
       if (action.open.title) { ou += '&title=' + encodeURIComponent(action.open.title); }
       wx.navigateTo({ url: ou });
@@ -675,7 +727,15 @@ Page({
     self._pushUser(prompt);
     self.setData({ aiBusy: true, typing: true });
     self._scrollDown();
-    api.aiMessage(prompt, { sessionId: self._sessionId }).then(function (res) {
+    var app = getApp();
+    var ind = app.globalData.industry;
+    var wlOpts = { sessionId: self._sessionId };
+    if (ind && ind.apiBase) {
+      wlOpts.baseOverride = ind.apiBase;
+      wlOpts.tokenOverride = ind.apiToken || '';
+      wlOpts.pathOverride = ind.aiPath || '';
+    }
+    api.aiMessage(prompt, wlOpts).then(function (res) {
       self._handleAiResult(res);
       self._pushWebLinkCard(web);
     }).catch(function (err) {
@@ -733,6 +793,7 @@ Page({
       self.setData({
         reportMenuItems: items,
         reportMenuOpen: true,
+        reportMenuKey: key,
         reportMenuStyle: 'left:' + left + 'px;bottom:' + bottom + 'px;width:' + menuW + 'px;',
         reportMenuArrowStyle: 'left:' + arrowLeft + 'px;',
       });
@@ -740,16 +801,23 @@ Page({
   },
 
   closeReportMenu: function () {
-    if (this.data.reportMenuOpen) this.setData({ reportMenuOpen: false });
+    if (this.data.reportMenuOpen) this.setData({ reportMenuOpen: false, reportMenuKey: '' });
   },
 
   // 阻止 popover 内部点击穿透到遮罩
   noop: function () {},
 
   // 需要登录才能打开的页面：无 token 时显示登录窗口（不跳转，避免报表页闪退）
+  // 外部行业检查 apiToken；普通行业检查 paper token。
   _requireLogin: function () {
     var app = getApp();
-    if (app.globalData && app.globalData.token) return true;
+    var ind = app.globalData && app.globalData.industry;
+    if (ind && ind.apiBase) {
+      if (ind.apiToken) { return true; }
+      wx.showToast({ title: '请联系管理员配置服务账号', icon: 'none' });
+      return false;
+    }
+    if (app.globalData && app.globalData.token) { return true; }
     this.setData({ user: null });
     wx.showToast({ title: '请先登录', icon: 'none' });
     wx.nextTick(this._recomputeMsgsHeight.bind(this));
@@ -759,7 +827,16 @@ Page({
   onReportItem: function (e) {
     var route = e.currentTarget.dataset.route || '';
     var prompt = e.currentTarget.dataset.prompt || '';
+    var external = e.currentTarget.dataset.external || '';
     this.setData({ reportMenuOpen: false });
+    // 外部 URL（如 app2 后台页）：web-view 打开，无需登录
+    if (external) {
+      wx.navigateTo({
+        url: '/pages/report/report?url=' + encodeURIComponent(external),
+        fail: function () { wx.showToast({ title: '打开失败', icon: 'none' }); },
+      });
+      return;
+    }
     if (route) {
       if (!this._requireLogin()) return;
       wx.navigateTo({ url: route });
@@ -853,7 +930,14 @@ Page({
           filePath: f.tempFilePath,
           encoding: 'base64',
           success: function (rf) {
-            api.aiMessage('', { imageBase64: rf.data, sessionId: self._sessionId }).then(function (res) {
+            var imgOpts = { imageBase64: rf.data, sessionId: self._sessionId };
+            var imgInd = getApp().globalData.industry;
+            if (imgInd && imgInd.apiBase) {
+              imgOpts.baseOverride = imgInd.apiBase;
+              imgOpts.tokenOverride = imgInd.apiToken || '';
+              imgOpts.pathOverride = imgInd.aiPath || '';
+            }
+            api.aiMessage('', imgOpts).then(function (res) {
               self._handleAiResult(res);
             }).catch(function (err) {
               self._handleAiError(err);
@@ -908,7 +992,14 @@ Page({
       self._pushMedia({ type: 'voice', tempPath: res.tempFilePath, duration: dur });
       self.setData({ aiBusy: true, typing: true });
       self._scrollDown();
-      api.aiVoice(res.tempFilePath, self._sessionId).then(function (data) {
+      // 外部行业（如进销存CRM）语音上传走外部后端 /ai/voice
+      var vInd = getApp().globalData.industry;
+      var vOpts = { sessionId: self._sessionId };
+      if (vInd && vInd.apiBase) {
+        vOpts.baseOverride = vInd.apiBase;
+        vOpts.tokenOverride = vInd.apiToken || '';
+      }
+      api.aiVoice(res.tempFilePath, vOpts).then(function (data) {
         self._handleAiResult(data);
       }).catch(function (err) {
         self._handleAiError(err);
@@ -1091,6 +1182,12 @@ Page({
   _handleAiError: function (err) {
     this.setData({ typing: false, aiBusy: false });
     var msg = (err && err.message) || String(err);
+    if (msg === 'App2Unauthenticated') {
+      this._sessionId = null;
+      this._pushAi('⚠️ 外部服务账号 Token 已失效，请联系管理员在后台更新。');
+      this._recomputeMsgsHeight();
+      return;
+    }
     if (msg === 'Unauthenticated') {
       this.setData({ user: null });
       this._sessionId = null;
@@ -1110,7 +1207,15 @@ Page({
     self.setData({ chatInput: '', aiBusy: true, typing: true });
     self._scrollDown();
 
-    api.aiMessage(text, { sessionId: self._sessionId }).then(function (res) {
+    var app = getApp();
+    var ind = app.globalData.industry;
+    var msgOpts = { sessionId: self._sessionId };
+    if (ind && ind.apiBase) {
+      msgOpts.baseOverride = ind.apiBase;
+      msgOpts.tokenOverride = ind.apiToken || '';
+      msgOpts.pathOverride = ind.aiPath || '';
+    }
+    api.aiMessage(text, msgOpts).then(function (res) {
       self._handleAiResult(res);
     }).catch(function (err) {
       self._handleAiError(err);

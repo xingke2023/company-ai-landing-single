@@ -118,19 +118,16 @@ PROMPT;
             $response = $this->visionClient->post('/chat/completions', [
                 'model' => $this->visionModel,
                 'messages' => $messages,
-                'temperature' => 0.1,
-                'response_format' => ['type' => 'json_object'],
+                'max_tokens' => 4000,
             ]);
         } else {
-            // 纯文字 → DeepSeek
+            // 纯文字
             $messages[] = ['role' => 'user', 'content' => $text];
 
             $response = $this->client->post('/chat/completions', [
                 'model' => $this->model,
                 'messages' => $messages,
-                'thinking' => ['type' => 'enabled'],
-                'reasoning_effort' => 'high',
-                'response_format' => ['type' => 'json_object'],
+                'max_tokens' => 4000,
             ]);
         }
 
@@ -145,7 +142,7 @@ PROMPT;
         }
 
         $content = $response->json('choices.0.message.content', '{}');
-        $parsed = json_decode($content, true);
+        $parsed = json_decode($this->extractJson($content), true);
 
         if (! is_array($parsed)) {
             return [
@@ -156,6 +153,26 @@ PROMPT;
         }
 
         return $parsed;
+    }
+
+    /**
+     * 从模型返回里提取 JSON：兼容被 ```json 代码块包裹或前后有解释文字的情况
+     * （Claude 等模型不支持 response_format=json_object，靠提示词返回 JSON）。
+     */
+    private function extractJson(string $content): string
+    {
+        $s = trim($content);
+        if (str_starts_with($s, '```')) {
+            $s = preg_replace('/^```(?:json)?\s*/', '', $s);
+            $s = preg_replace('/\s*```$/', '', $s);
+        }
+        $start = strpos($s, '{');
+        $end = strrpos($s, '}');
+        if ($start !== false && $end !== false && $end > $start) {
+            return substr($s, $start, $end - $start + 1);
+        }
+
+        return $s;
     }
 
     /**

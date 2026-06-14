@@ -2,7 +2,6 @@
   <!-- Header -->
   <view class="header" style="padding-top: {{statusBarHeight}}px;">
     <view class="header-inner">
-      <view class="avatar"><image class="avatar-svg" src="{{icons.bot}}" mode="aspectFit" /></view>
       <view class="title-block">
         <view class="title">{{appTitle}}</view>
         <view class="subtitle">
@@ -166,7 +165,7 @@
 
   <!-- Bottom input -->
   <view class="bottom">
-    <view wx:if="{{!user && !logging}}" class="login-prompt">
+    <view wx:if="{{!externalMode && !user && !logging}}" class="login-prompt">
       <view class="login-tip">请用门店账号登录后开始聊天</view>
       <view class="login-card">
         <view class="login-row">
@@ -200,7 +199,7 @@
       <button class="btn-primary login-submit" bindtap="onLogin" disabled="{{logging}}">登录</button>
     </view>
 
-    <view wx:elif="{{logging}}" class="login-prompt">
+    <view wx:elif="{{!externalMode && logging}}" class="login-prompt">
       <view class="login-tip">正在为你登录…</view>
     </view>
 
@@ -213,25 +212,27 @@
             wx:key="key"
             wx:if="{{!item.adminOnly || (user && user.is_admin)}}"
             class="qa-chip qa-chip-{{item.key}}"
+            hover-class="qa-chip--pressed"
+            hover-stay-time="120"
             bindtap="onQuickAction"
             data-prompt="{{item.prompt}}"
             data-key="{{item.key}}"
           >
-            <text class="qa-emoji">{{item.emoji}}</text>
             <text class="qa-label">{{item.label}}</text>
+            <text wx:if="{{item.items && item.items.length}}" class="qa-arrow {{reportMenuKey === item.key ? 'qa-arrow--open' : ''}}">›</text>
             <view wx:if="{{item.badge}}" class="qa-badge">{{item.badge}}</view>
           </view>
         </view>
       </scroll-view>
 
       <view class="input-row">
-        <!-- 语音模式切换 -->
-        <view class="icon-btn" bindtap="toggleVoiceMode">
+        <!-- 语音模式切换（mediaEnabled 行业才显示） -->
+        <view wx:if="{{mediaEnabled}}" class="icon-btn" bindtap="toggleVoiceMode">
           <image class="icon-svg" src="{{voiceMode ? icons.keyboard : icons.mic}}" mode="aspectFit" />
         </view>
 
         <!-- 中间：文本输入 或 按住说话 -->
-        <view wx:if="{{voiceMode}}"
+        <view wx:if="{{mediaEnabled && voiceMode}}"
           class="hold-to-talk {{recording ? 'hold-to-talk--rec' : ''}}"
           bindtouchstart="onVoiceStart"
           bindtouchend="onVoiceEnd"
@@ -240,7 +241,7 @@
 
         <input wx:else
           class="input"
-          placeholder="{{aiBusy ? 'AI 思考中…' : '随便聊聊，或问点什么…'}}"
+          placeholder="{{aiBusy ? 'AI 思考中…' : (externalMode ? '查库存、客户、订单…' : '随便聊聊，或问点什么…')}}"
           value="{{chatInput}}"
           bindinput="onInput"
           confirm-type="send"
@@ -250,8 +251,8 @@
           adjust-position="{{true}}"
         />
 
-        <!-- "+" 展开媒体面板 -->
-        <view class="icon-btn" bindtap="togglePlusMenu">
+        <!-- "+" 展开媒体面板（拍照/相册/文件） -->
+        <view wx:if="{{mediaEnabled}}" class="icon-btn" bindtap="togglePlusMenu">
           <image class="icon-svg" src="{{plusOpen ? icons.close : icons.plus}}" mode="aspectFit" />
         </view>
 
@@ -272,6 +273,7 @@
             bindtap="onReportItem"
             data-prompt="{{item.prompt}}"
             data-route="{{item.route}}"
+            data-external="{{item.external}}"
           >
             <view class="popover-item-emoji">{{item.emoji}}</view>
             <view class="popover-item-texts">

@@ -39,8 +39,14 @@ class DatabaseSeeder extends Seeder
         // 基础租户骨架：组织 / 区域 / 默认门店（store_id=1）
         $this->call(OrgStoreSeeder::class);
 
+        // 行业模版（小程序启动选行业，quick_actions 按 industry 过滤）
+        $this->call(IndustrySeeder::class);
+
         // 小程序聊天页底部快捷按钮（后台可配）
         $this->call(QuickActionSeeder::class);
+
+        // 菜单模版：每行业默认模版 + 归集按钮（须在 QuickActionSeeder 之后）
+        $this->call(MenuTemplateSeeder::class);
 
         // 应用配置（小程序标题等）
         $this->call(AppSettingSeeder::class);

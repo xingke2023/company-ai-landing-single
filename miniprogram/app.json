@@ -1,5 +1,6 @@
 {
   "pages": [
+    "pages/industry/industry",
     "pages/chat/chat",
     "pages/report/report",
     "pages/damage/damage",

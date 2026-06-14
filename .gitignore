@@ -9,6 +9,8 @@
 # Backend (Laravel)
 backend/.env
 backend/.env.backup
+backend/.env.bak*
+.env.bak*
 backend/.phpunit.result.cache
 backend/Homestead.json
 backend/Homestead.yaml

@@ -1,0 +1,30 @@
+<view class="root">
+  <!-- Header -->
+  <view class="header" style="padding-top: {{statusBarHeight}}px;">
+    <view class="header-inner">
+      <view class="brand">{{brandTitle}}</view>
+      <view class="brand-sub">{{brandSub}}</view>
+    </view>
+  </view>
+
+  <scroll-view class="body" scroll-y="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
+    <view wx:if="{{loading}}" class="loading">加载中…</view>
+
+    <view wx:else class="grid">
+      <view
+        wx:for="{{industries}}"
+        wx:key="slug"
+        class="card"
+        hover-class="card-hover"
+        data-slug="{{item.slug}}"
+        bindtap="onPick">
+        <image wx:if="{{item.icon}}" class="card-icon" src="{{item.icon}}" mode="aspectFit" />
+        <view wx:else class="card-emoji">{{item.emoji}}</view>
+        <view class="card-name">{{item.name}}</view>
+        <view wx:if="{{item.description}}" class="card-desc">{{item.description}}</view>
+      </view>
+    </view>
+
+    <view class="footer-tip">进入后可在底部菜单使用该行业的常用功能</view>
+  </scroll-view>
+</view>

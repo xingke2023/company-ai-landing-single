@@ -20,6 +20,8 @@ class QuickAction extends Model
         'web_label',
         'admin_only',
         'store_id',
+        'industry',
+        'menu_template_id',
         'enabled',
         'sort_order',
     ];
@@ -41,6 +43,11 @@ class QuickAction extends Model
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
+    }
+
+    public function menuTemplate(): BelongsTo
+    {
+        return $this->belongsTo(MenuTemplate::class);
     }
 
     /**
@@ -86,6 +93,17 @@ class QuickAction extends Model
             case 'route':
                 // 直接 wx.navigateTo 到小程序原生页（区别于 'open' 走 web-view 容器）
                 $node['route'] = $this->target_path;
+                break;
+
+            case 'external':
+                // 用 web-view 打开完整外部 URL（target_path 存整条 URL，不拼 token）；
+                // 小程序 chat.js 读 action.external → report.js 的 ?url= 原样加载
+                $node['external'] = $this->target_path;
+                break;
+
+            case 'home':
+                // 返回主页（切换行业）：小程序 chat.js reLaunch 到该路径（清空页面栈，无需登录）
+                $node['home'] = $this->target_path ?: '/pages/industry/industry';
                 break;
 
             case 'menu':

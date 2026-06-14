@@ -5,8 +5,10 @@
 function callBackend(path, options) {
   return new Promise(function (resolve, reject) {
     var app = getApp();
-    var base = app.globalData.apiBaseUrl;
-    var token = app.globalData.token || '';
+    // baseOverride：某些行业（如进销存及CRM）的接口指向外部后端（app2），优先于默认 base
+    var base = options.baseOverride || app.globalData.apiBaseUrl;
+    // tokenOverride：外部行业用独立的 app2 JWT，不能用 paper token（账号体系不同）
+    var token = options.tokenOverride !== undefined ? options.tokenOverride : (app.globalData.token || '');
     var headers = Object.assign(
       { 'Content-Type': 'application/json', Accept: 'application/json' },
       token ? { Authorization: 'Bearer ' + token } : {},
@@ -80,7 +82,10 @@ function request(path, options) {
   options = options || {};
   return callBackend(path, options).then(function (res) {
     if (res.statusCode === 401) {
-      // 没有保存密码，无法静默重登，清空登录态让页面回到登录表单
+      // baseOverride = 外部行业请求，token 由后台管理，客户端不清除；paper 请求才清本地登录态
+      if (options.baseOverride) {
+        throw new Error('App2Unauthenticated');
+      }
       clearAuth();
       throw new Error('Unauthenticated');
     }
