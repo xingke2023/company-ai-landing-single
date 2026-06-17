@@ -66,3 +66,6 @@ frontend/coverage/
 .cache
 .temp
 .tmp
+
+# Database backups
+bak/
