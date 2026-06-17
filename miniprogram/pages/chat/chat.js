@@ -534,9 +534,9 @@ Page({
       this._validateSession();
       this._loadQuickActions();
     } else {
-      this.setData({ user: null });
+      // 内部行业使用服务账号自动登录，无需手动输入
+      this._doLogin('david', 'uuuu8888');
     }
-    // 未登录则停留在底部登录表单，等待用户输入账号密码
   },
 
   // 外部行业欢迎语
@@ -550,16 +550,15 @@ Page({
     wx.nextTick(this._recomputeMsgsHeight.bind(this));
   },
 
-  // 校验缓存的 token 是否仍有效，失效则清登录态回登录表单（避免"假登录")
+  // 校验缓存的 token 是否仍有效，失效则自动重新登录
   _validateSession: function () {
     var self = this;
     api.me().catch(function (err) {
       var msg = (err && err.message) || '';
       if (msg === 'Unauthenticated') {
-        // request() 在 401 时已 clearAuth，这里只需更新 UI
         self.setData({ user: null, msgs: [] });
         wx.nextTick(function () { self._recomputeMsgsHeight(); });
-        wx.showToast({ title: '登录已失效，请重新登录', icon: 'none' });
+        self._doLogin('david', 'uuuu8888');
       }
     });
   },
@@ -1066,16 +1065,16 @@ Page({
       wx.showToast({ title: '请输入账号和密码', icon: 'none' });
       return;
     }
-    self._doLogin(username, password, null);
+    self._doLogin(username, password);
   },
 
-  // 实际登录；storeId 为空先不带，多门店账号会收到 stores 列表 → 弹门店选择后带 store_id 重登
-  _doLogin: function (username, password, storeId) {
+  // 实际登录：走 SSO 单点登录（后端桥接外部 Auth Center）。门店由后端解析，无多门店分支。
+  _doLogin: function (identifier, password) {
     var self = this;
     self.setData({ logging: true });
     wx.nextTick(function () { self._recomputeMsgsHeight(); });
 
-    api.login(username, password, storeId).then(function () {
+    api.ssoLogin(identifier, password).then(function () {
       var app = getApp();
       self.setData({
         user: app.globalData.user,
@@ -1088,17 +1087,6 @@ Page({
     }).catch(function (err) {
       self.setData({ logging: false });
       wx.nextTick(function () { self._recomputeMsgsHeight(); });
-      if (err && err.multiStore && err.stores && err.stores.length) {
-        var items = err.stores.map(function (id) { return '门店 ' + id; });
-        wx.showActionSheet({
-          itemList: items,
-          success: function (r) {
-            self._doLogin(username, password, err.stores[r.tapIndex]);
-          },
-          fail: function () { /* 用户取消选择 */ },
-        });
-        return;
-      }
       wx.showToast({ title: (err && err.message) || '登录失败', icon: 'none' });
     });
   },
@@ -1117,7 +1105,7 @@ Page({
           self._sessionId = null;
           self.setData({ user: null, msgs: [], chatInput: '', loginForm: { username: '', password: '' } });
           wx.nextTick(function () { self._recomputeMsgsHeight(); });
-          wx.showToast({ title: '已退出', icon: 'none' });
+          self._doLogin('david', 'uuuu8888');
         });
       },
     });

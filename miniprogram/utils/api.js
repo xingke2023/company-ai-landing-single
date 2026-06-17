@@ -5,6 +5,7 @@
 var req = require('./request.js');
 var request = req.request;
 var login = req.login;
+var ssoLogin = req.ssoLogin;
 var clearAuth = req.clearAuth;
 
 /**
@@ -251,6 +252,7 @@ function logout() {
 
 module.exports = {
   login: login,
+  ssoLogin: ssoLogin,
   me: me,
   logout: logout,
   quickActions: quickActions,

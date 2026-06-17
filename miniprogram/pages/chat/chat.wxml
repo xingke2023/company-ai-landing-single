@@ -166,13 +166,13 @@
   <!-- Bottom input -->
   <view class="bottom">
     <view wx:if="{{!externalMode && !user && !logging}}" class="login-prompt">
-      <view class="login-tip">请用门店账号登录后开始聊天</view>
+      <view class="login-tip">请用账号登录后开始聊天</view>
       <view class="login-card">
         <view class="login-row">
           <text class="login-row-label">账号</text>
           <input
             class="login-field"
-            placeholder="门店账号 / 用户名"
+            placeholder="用户名 / 邮箱"
             placeholder-class="login-ph"
             value="{{loginForm.username}}"
             data-field="username"

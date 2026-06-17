@@ -27,8 +27,44 @@ function callBackend(path, options) {
   });
 }
 
+// 登录成功后把 token/user/storeId 落地到 globalData + storage（login / ssoLogin 共用）。
+// 统一存 JWT（无状态）而非 Sanctum opaque token：后端 auth.hybrid 对 JWT 走独立路径，
+// 不经会话 guard，避免 web-view 携带 cookie 触发 TransientToken（缺 abilities）500。
+function _persistAuth(data) {
+  var app = getApp();
+  var authToken = data.jwt_token || data.token;
+  app.globalData.token = authToken;
+  app.globalData.user = data.user;
+  app.globalData.storeId = data.store_id;
+  try {
+    wx.setStorageSync('token', authToken);
+    wx.setStorageSync('user', data.user);
+    wx.setStorageSync('storeId', data.store_id);
+  } catch (e) { /* ignore */ }
+  return data;
+}
+
 /**
- * 账号密码登录 —— 舌尖后端 POST /login
+ * SSO 单点登录 —— 后端 POST /auth/sso/login（桥接外部 Auth Center）
+ * body: { identifier: 用户名或邮箱, password }
+ * 后端代理认证中心、映射本地用户后，返回与 /login 同形状的 { token, jwt_token, store_id, user }。
+ * 门店在后端解析，无多门店 422 分支。
+ */
+function ssoLogin(identifier, password) {
+  return callBackend('/auth/sso/login', {
+    method: 'POST',
+    data: { identifier: identifier, password: password },
+  }).then(function (res) {
+    if (res.statusCode === 200 && res.data && (res.data.jwt_token || res.data.token)) {
+      return _persistAuth(res.data);
+    }
+    var msg = (res.data && (res.data.message || res.data.detail)) || ('HTTP ' + res.statusCode);
+    throw new Error(msg);
+  });
+}
+
+/**
+ * 账号密码登录 —— 舌尖后端 POST /login（保留，供非 SSO 场景复用）
  * body: { login: 用户名或邮箱, password }
  * 成功返回 { token, jwt_token, store_id, user }
  */
@@ -40,19 +76,7 @@ function login(username, password, storeId) {
     data: body,
   }).then(function (res) {
     if (res.statusCode === 200 && res.data && (res.data.jwt_token || res.data.token)) {
-      var app = getApp();
-      // 用 JWT（无状态）而非 Sanctum opaque token：后端 auth.hybrid 对 JWT 走独立路径，
-      // 不经会话 guard，避免 web-view 携带 cookie 触发 TransientToken（缺 abilities）500。
-      var authToken = res.data.jwt_token || res.data.token;
-      app.globalData.token = authToken;
-      app.globalData.user = res.data.user;
-      app.globalData.storeId = res.data.store_id;
-      try {
-        wx.setStorageSync('token', authToken);
-        wx.setStorageSync('user', res.data.user);
-        wx.setStorageSync('storeId', res.data.store_id);
-      } catch (e) { /* ignore */ }
-      return res.data;
+      return _persistAuth(res.data);
     }
     // 多门店账号：后端返回 422 + stores 列表 → 抛出带 stores 的错误，由 UI 弹门店选择
     if (res.statusCode === 422 && res.data && res.data.stores && res.data.stores.length) {
@@ -97,4 +121,4 @@ function request(path, options) {
   });
 }
 
-module.exports = { request: request, login: login, clearAuth: clearAuth };
+module.exports = { request: request, login: login, ssoLogin: ssoLogin, clearAuth: clearAuth };

@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\QuickActionController;
 use App\Http\Controllers\Api\ResumeController;
 use App\Http\Controllers\Api\SalesOrderController;
 use App\Http\Controllers\Api\SalesUploadController;
+use App\Http\Controllers\Api\SsoAuthController;
 use App\Http\Controllers\Api\SuggestionController;
 use App\Http\Controllers\Api\SupplierRefundClaimController;
 use App\Http\Controllers\Api\WeatherController;
@@ -29,6 +30,11 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/app-config', [AppConfigController::class, 'index']);
 // 公开行业列表（小程序启动「选择行业」页，先于登录）
 Route::get('/industries', [IndustryController::class, 'index']);
+
+// SSO 单点登录（外部 Auth Center，桥接换本地 JWT）— 小程序登录入口
+Route::post('/auth/sso/login', [SsoAuthController::class, 'login']);
+Route::post('/auth/sso/exchange', [SsoAuthController::class, 'exchange']);
+Route::post('/auth/sso/refresh', [SsoAuthController::class, 'refresh']);
 
 // Protected routes
 Route::middleware('auth.hybrid')->group(function () {
