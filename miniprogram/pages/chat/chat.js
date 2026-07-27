@@ -407,6 +407,7 @@ Page({
     user: null,
     logging: false,
     loginForm: { username: '', password: '' },
+    isRegisterMode: false, // false=登录表单，true=注册表单（复用同一组输入框）
 
     externalMode: false,          // 外部行业：菜单/AI 走外部后端，JWT 来自 industry.apiToken
     mediaEnabled: false,          // 聊天是否显示语音/拍照/相册/文件输入（本地行业或 ai_media 行业）
@@ -461,7 +462,7 @@ Page({
       { key: 'weather',   emoji: '🌦️', label: '查天气', prompt: '明天天气怎么样', badge: '' },
       { key: 'help',      emoji: '💡', label: '使用说明', prompt: '你能帮我做什么', badge: '' },
       // 仅管理员可见（user.is_admin）：经 /admin/sso 用 JWT 免登录进 Filament 后台。
-      // report.js 会把 path 拼成 paper.xingke888.com/admin/sso?token=<JWT>&from=miniapp，
+      // report.js 会把 path 拼成 app61.xingke888.com/admin/sso?token=<JWT>&from=miniapp，
       // AdminSsoController 解 JWT→写 web session→跳 /admin。
       { key: 'admin', emoji: '🛠️', label: '后台管理', badge: '', adminOnly: true,
         open: { path: '/admin/sso', title: '后台管理' } },
@@ -534,8 +535,7 @@ Page({
       this._validateSession();
       this._loadQuickActions();
     } else {
-      // 内部行业使用服务账号自动登录，无需手动输入
-      this._doLogin('david', 'uuuu8888');
+      // 无缓存登录态：直接展示登录表单，由用户输入自己的账号密码走 SSO 登录
     }
   },
 
@@ -550,7 +550,7 @@ Page({
     wx.nextTick(this._recomputeMsgsHeight.bind(this));
   },
 
-  // 校验缓存的 token 是否仍有效，失效则自动重新登录
+  // 校验缓存的 token 是否仍有效，失效则清空登录态、展示登录表单
   _validateSession: function () {
     var self = this;
     api.me().catch(function (err) {
@@ -558,7 +558,6 @@ Page({
       if (msg === 'Unauthenticated') {
         self.setData({ user: null, msgs: [] });
         wx.nextTick(function () { self._recomputeMsgsHeight(); });
-        self._doLogin('david', 'uuuu8888');
       }
     });
   },
@@ -706,6 +705,14 @@ Page({
       var ou = '/pages/report/report?path=' + encodeURIComponent(action.open.path);
       if (action.open.title) { ou += '&title=' + encodeURIComponent(action.open.title); }
       wx.navigateTo({ url: ou });
+      return;
+    }
+    // 带 externalAuth 配置：打开完整外部 URL（跨域名第三方 SaaS），带上本项目登录 token
+    if (action && action.externalAuth) {
+      if (!this._requireLogin()) { return; }
+      var eu = '/pages/report/report?url=' + encodeURIComponent(action.externalAuth.url) + '&withToken=1';
+      if (action.externalAuth.title) { eu += '&title=' + encodeURIComponent(action.externalAuth.title); }
+      wx.navigateTo({ url: eu, fail: function () { wx.showToast({ title: '打开失败', icon: 'none' }); } });
       return;
     }
     // 带 web 配置的快捷项：发 AI 文字摘要后，追加一个「打开完整页」按钮打开 web-view
@@ -1065,7 +1072,44 @@ Page({
       wx.showToast({ title: '请输入账号和密码', icon: 'none' });
       return;
     }
-    self._doLogin(username, password);
+    if (self.data.isRegisterMode) {
+      self._doRegister(username, password);
+    } else {
+      self._doLogin(username, password);
+    }
+  },
+
+  // 登录/注册表单切换：复用同一组用户名/密码输入框
+  onToggleRegisterMode: function () {
+    if (this.data.logging) return;
+    this.setData({
+      isRegisterMode: !this.data.isRegisterMode,
+      loginForm: { username: '', password: '' },
+    });
+  },
+
+  // 实际注册：走 SSO 注册（后端桥接外部 Auth Center 建号），成功即自动登录，跟 _doLogin 收尾一致
+  _doRegister: function (username, password) {
+    var self = this;
+    self.setData({ logging: true });
+    wx.nextTick(function () { self._recomputeMsgsHeight(); });
+
+    api.ssoRegister(username, password).then(function () {
+      var app = getApp();
+      self.setData({
+        user: app.globalData.user,
+        logging: false,
+        isRegisterMode: false,
+        loginForm: { username: '', password: '' },
+      });
+      wx.nextTick(function () { self._recomputeMsgsHeight(); });
+      self._greetLoggedIn(app.globalData.user);
+      self._loadQuickActions();
+    }).catch(function (err) {
+      self.setData({ logging: false });
+      wx.nextTick(function () { self._recomputeMsgsHeight(); });
+      wx.showToast({ title: (err && err.message) || '注册失败', icon: 'none' });
+    });
   },
 
   // 实际登录：走 SSO 单点登录（后端桥接外部 Auth Center）。门店由后端解析，无多门店分支。
@@ -1105,7 +1149,6 @@ Page({
           self._sessionId = null;
           self.setData({ user: null, msgs: [], chatInput: '', loginForm: { username: '', password: '' } });
           wx.nextTick(function () { self._recomputeMsgsHeight(); });
-          self._doLogin('david', 'uuuu8888');
         });
       },
     });

@@ -708,6 +708,13 @@
   padding: 26rpx 0;
   font-size: 32rpx;
 }
+.auth-mode-toggle {
+  margin-top: 4rpx;
+  font-size: 26rpx;
+  color: #E65C46;
+  text-align: center;
+}
+.auth-mode-toggle:active { opacity: 0.6; }
 .btn-primary {
   background: #E65C46;
   color: #fff;

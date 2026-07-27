@@ -56,6 +56,40 @@ class SsoAuthService
     }
 
     /**
+     * 账号密码注册 Auth Center。
+     *
+     * @return array{accessToken:string,refreshToken?:string,user?:array<string,mixed>}
+     *
+     * @throws ValidationException 用户名已存在或认证中心不可用
+     */
+    public function register(string $username, string $password, ?string $name = null, ?string $email = null): array
+    {
+        $payload = ['username' => $username, 'password' => $password];
+        if ($name !== null && $name !== '') {
+            $payload['name'] = $name;
+        }
+        if ($email !== null && $email !== '') {
+            $payload['email'] = $email;
+        }
+
+        try {
+            $response = $this->client->post('/auth/register', $payload);
+        } catch (Throwable $e) {
+            throw ValidationException::withMessages([
+                'username' => ['认证中心暂不可用，请稍后再试'],
+            ]);
+        }
+
+        if ($response->failed()) {
+            throw ValidationException::withMessages([
+                'username' => [$this->errorMessage($response->json(), '注册失败')],
+            ]);
+        }
+
+        return $this->unwrap($response->json());
+    }
+
+    /**
      * 刷新 Auth Center token。
      *
      * @return array{accessToken:string,refreshToken?:string}

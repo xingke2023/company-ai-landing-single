@@ -166,13 +166,13 @@
   <!-- Bottom input -->
   <view class="bottom">
     <view wx:if="{{!externalMode && !user && !logging}}" class="login-prompt">
-      <view class="login-tip">请用账号登录后开始聊天</view>
+      <view class="login-tip">{{isRegisterMode ? '注册一个新账号' : '请用账号登录后开始聊天'}}</view>
       <view class="login-card">
         <view class="login-row">
           <text class="login-row-label">账号</text>
           <input
             class="login-field"
-            placeholder="用户名 / 邮箱"
+            placeholder="{{isRegisterMode ? '设置用户名（字母/数字/下划线）' : '用户名 / 邮箱'}}"
             placeholder-class="login-ph"
             value="{{loginForm.username}}"
             data-field="username"
@@ -185,7 +185,7 @@
           <text class="login-row-label">密码</text>
           <input
             class="login-field"
-            placeholder="登录密码"
+            placeholder="{{isRegisterMode ? '设置密码（至少8位）' : '登录密码'}}"
             placeholder-class="login-ph"
             password="{{true}}"
             value="{{loginForm.password}}"
@@ -196,7 +196,8 @@
           />
         </view>
       </view>
-      <button class="btn-primary login-submit" bindtap="onLogin" disabled="{{logging}}">登录</button>
+      <button class="btn-primary login-submit" bindtap="onLogin" disabled="{{logging}}">{{isRegisterMode ? '注册' : '登录'}}</button>
+      <text class="auth-mode-toggle" bindtap="onToggleRegisterMode">{{isRegisterMode ? '已有账号？去登录' : '没有账号？去注册'}}</text>
     </view>
 
     <view wx:elif="{{!externalMode && logging}}" class="login-prompt">

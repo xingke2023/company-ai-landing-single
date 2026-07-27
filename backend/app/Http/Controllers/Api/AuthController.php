@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Models\User;
-use App\Models\UserStoreRole;
 use App\Services\JwtService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,47 +14,6 @@ use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
-    public function register(Request $request): JsonResponse
-    {
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'username' => ['required', 'string', 'max:64', 'unique:users', 'regex:/^\w+$/'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'store_id' => ['required', 'integer', 'exists:stores,id'],
-        ]);
-
-        $user = User::create([
-            'name' => $request->name,
-            'username' => $request->username,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
-
-        UserStoreRole::create([
-            'user_id' => $user->id,
-            'store_id' => $request->integer('store_id'),
-            'role_id' => 4, // 门店店员（默认）
-        ]);
-
-        $storeIdInt = $request->integer('store_id');
-        $token = $user->createToken('auth_token', ['store:'.$storeIdInt], now()->addDays(30))->plainTextToken;
-        $jwtToken = app(JwtService::class)->issueForUser($user, $storeIdInt);
-
-        return response()->json([
-            'message' => '注册成功',
-            'token' => $token,
-            'jwt_token' => $jwtToken,
-            'store_id' => $storeIdInt,
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'is_admin' => $user->is_admin,
-            ],
-        ], 201);
-    }
-
     public function login(Request $request): JsonResponse
     {
         $request->validate([

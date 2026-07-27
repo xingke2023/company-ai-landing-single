@@ -33,6 +33,7 @@ export interface AuthResponse {
   message: string;
   user: User;
   token: string;
+  jwt_token: string;
 }
 
 export interface LoginCredentials {

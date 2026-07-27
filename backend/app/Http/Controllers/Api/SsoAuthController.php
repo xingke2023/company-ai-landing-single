@@ -36,7 +36,31 @@ class SsoAuthController extends Controller
 
         $result = $this->sso->login($request->string('identifier'), $request->string('password'));
 
-        return $this->issueLocalSession($result['user'] ?? []);
+        return $this->issueLocalSession($result['user'] ?? [], $result['accessToken'] ?? null, $result['refreshToken'] ?? null);
+    }
+
+    /**
+     * 注册入口：账号密码 → Auth Center 建号 → 本地会话（同 login 形状，注册后自动登录）。网页 /register 使用。
+     */
+    public function register(Request $request): JsonResponse
+    {
+        // 校验规则对齐认证中心自己的要求（username 3~50 位字母/数字/下划线，password 8~100 位），
+        // 提前在本地拦，避免把不合规的请求转发过去才由认证中心报错
+        $request->validate([
+            'username' => ['required', 'string', 'min:3', 'max:50', 'regex:/^\w+$/'],
+            'password' => ['required', 'string', 'min:8', 'max:100'],
+            'name' => ['nullable', 'string'],
+            'email' => ['nullable', 'email'],
+        ]);
+
+        $result = $this->sso->register(
+            $request->string('username'),
+            $request->string('password'),
+            $request->filled('name') ? $request->string('name')->toString() : null,
+            $request->filled('email') ? $request->string('email')->toString() : null,
+        );
+
+        return $this->issueLocalSession($result['user'] ?? [], $result['accessToken'] ?? null, $result['refreshToken'] ?? null);
     }
 
     /**
@@ -75,8 +99,11 @@ class SsoAuthController extends Controller
      * 映射/创建本地用户 → 解析门店 → 签发本地 token（同 AuthController::login 形状）。
      *
      * @param  array<string,mixed>  $ssoUser  Auth Center 用户对象（含 id/username/email）
+     * @param  string|null  $ssoAccessToken  Auth Center 原生 accessToken（透传给客户端，用于访问认证中心生态内的其他服务，
+     *                                        如 ai.xingke888.com——那些服务认的是认证中心签的 token，不认本项目自家 jwt_token）
+     * @param  string|null  $ssoRefreshToken  Auth Center refreshToken（accessToken 仅 15 分钟有效，客户端用这个在用到时现换新的）
      */
-    private function issueLocalSession(array $ssoUser): JsonResponse
+    private function issueLocalSession(array $ssoUser, ?string $ssoAccessToken = null, ?string $ssoRefreshToken = null): JsonResponse
     {
         $user = $this->resolveLocalUser($ssoUser);
         $storeId = $user->resolveStoreId();
@@ -90,6 +117,8 @@ class SsoAuthController extends Controller
             'message' => '登录成功',
             'token' => $token,
             'jwt_token' => $jwtToken,
+            'sso_access_token' => $ssoAccessToken,
+            'sso_refresh_token' => $ssoRefreshToken,
             'store_id' => $storeId,
             'store_name' => $store?->name,
             'user' => [

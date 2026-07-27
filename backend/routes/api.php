@@ -24,7 +24,6 @@ use App\Http\Controllers\Api\WeworkCallbackController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
-Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 // 公开应用配置（小程序标题等，登录前也要能拿到）
 Route::get('/app-config', [AppConfigController::class, 'index']);
@@ -33,6 +32,7 @@ Route::get('/industries', [IndustryController::class, 'index']);
 
 // SSO 单点登录（外部 Auth Center，桥接换本地 JWT）— 小程序登录入口
 Route::post('/auth/sso/login', [SsoAuthController::class, 'login']);
+Route::post('/auth/sso/register', [SsoAuthController::class, 'register']);
 Route::post('/auth/sso/exchange', [SsoAuthController::class, 'exchange']);
 Route::post('/auth/sso/refresh', [SsoAuthController::class, 'refresh']);
 

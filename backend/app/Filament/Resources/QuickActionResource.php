@@ -41,6 +41,7 @@ class QuickActionResource extends Resource
                         'prompt' => '发送文字给 AI（prompt）',
                         'web' => '发 AI 摘要 + 打开网页（web）',
                         'open' => '直接打开网页（open）',
+                        'external_open' => '打开外部网站并带上登录 token（external_open）',
                         'menu' => '弹出子菜单（menu）',
                         'home' => '返回主页 / 切换行业（home）',
                     ])
@@ -73,17 +74,17 @@ class QuickActionResource extends Resource
                     ->required(fn (Get $get) => in_array($get('action_type'), ['prompt', 'web'])),
 
                 Forms\Components\TextInput::make('target_path')
-                    ->label('网页路径')
+                    ->label('网页路径 / 外部网址')
                     ->maxLength(200)
-                    ->placeholder('/inventory、/sales-report、/admin/sso')
-                    ->helperText('web-view 加载的路径，自动带 token')
-                    ->visible(fn (Get $get) => in_array($get('action_type'), ['web', 'open']))
-                    ->required(fn (Get $get) => in_array($get('action_type'), ['web', 'open'])),
+                    ->placeholder('web/open 填相对路径，如 /inventory；external_open 填完整 URL，如 https://ai.xingke888.com/gzh-rewrite')
+                    ->helperText('web-view 加载的地址，自动带 token')
+                    ->visible(fn (Get $get) => in_array($get('action_type'), ['web', 'open', 'external_open']))
+                    ->required(fn (Get $get) => in_array($get('action_type'), ['web', 'open', 'external_open'])),
 
                 Forms\Components\TextInput::make('target_title')
                     ->label('网页标题')
                     ->maxLength(50)
-                    ->visible(fn (Get $get) => in_array($get('action_type'), ['web', 'open'])),
+                    ->visible(fn (Get $get) => in_array($get('action_type'), ['web', 'open', 'external_open'])),
 
                 Forms\Components\TextInput::make('web_label')
                     ->label('「打开完整页」按钮文字')
@@ -152,12 +153,14 @@ class QuickActionResource extends Resource
                         'prompt' => '文字',
                         'web' => '摘要+网页',
                         'open' => '打开网页',
+                        'external_open' => '外部网站(带token)',
                         'menu' => '子菜单',
                         'home' => '返回主页',
                     ][$state] ?? $state)
                     ->color(fn ($state) => match ($state) {
                         'menu' => 'warning',
                         'open' => 'info',
+                        'external_open' => 'info',
                         'web' => 'success',
                         'home' => 'danger',
                         default => 'gray',
@@ -177,6 +180,7 @@ class QuickActionResource extends Resource
                         'prompt' => '文字',
                         'web' => '摘要+网页',
                         'open' => '打开网页',
+                        'external_open' => '外部网站(带token)',
                         'menu' => '子菜单',
                         'home' => '返回主页',
                     ]),

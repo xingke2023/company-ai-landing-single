@@ -1169,6 +1169,7 @@ export default function ManagePage() {
           <a href="/inventory" className="text-white/80 hover:text-white hidden sm:inline font-medium px-2 py-1 rounded-lg hover:bg-white/10 transition-colors">库存</a>
           <a href="/sales-report" className="text-white/80 hover:text-white hidden sm:inline font-medium px-2 py-1 rounded-lg hover:bg-white/10 transition-colors">报表</a>
           <a href="/damage" className="text-white/80 hover:text-white hidden sm:inline font-medium px-2 py-1 rounded-lg hover:bg-white/10 transition-colors">损耗</a>
+          <a href="https://ai.xingke888.com/gzh-rewrite" target="_blank" rel="noopener noreferrer" className="text-white/80 hover:text-white hidden sm:inline font-medium px-2 py-1 rounded-lg hover:bg-white/10 transition-colors">公众号写作</a>
           <button
             onClick={() => logout().then(() => router.push('/login'))}
             className="text-white/60 hover:text-white hidden sm:inline transition-colors px-2 py-1 rounded-lg hover:bg-white/10"
@@ -1206,10 +1207,13 @@ export default function ManagePage() {
                   { label: '库存',   href: '/inventory',   icon: '📦' },
                   { label: '报表',   href: '/sales-report',icon: '📈' },
                   { label: '损耗',   href: '/damage',      icon: '⚠️' },
+                  { label: '公众号写作', href: 'https://ai.xingke888.com/gzh-rewrite', icon: '✍️', external: true },
                 ].map(item => (
                   <a
                     key={item.href}
                     href={item.href}
+                    target={item.external ? '_blank' : undefined}
+                    rel={item.external ? 'noopener noreferrer' : undefined}
                     className="flex flex-col items-center gap-1.5 py-3 rounded-xl hover:bg-white/10 active:bg-white/20 transition-colors text-white"
                   >
                     <span className="text-2xl">{item.icon}</span>

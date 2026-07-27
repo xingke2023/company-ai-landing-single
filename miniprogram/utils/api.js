@@ -6,7 +6,9 @@ var req = require('./request.js');
 var request = req.request;
 var login = req.login;
 var ssoLogin = req.ssoLogin;
+var ssoRegister = req.ssoRegister;
 var clearAuth = req.clearAuth;
+var refreshSsoToken = req.refreshSsoToken;
 
 /**
  * 文字 / 图片 AI 消息 —— 舌尖后端 POST /ai/message
@@ -253,6 +255,8 @@ function logout() {
 module.exports = {
   login: login,
   ssoLogin: ssoLogin,
+  ssoRegister: ssoRegister,
+  refreshSsoToken: refreshSsoToken,
   me: me,
   logout: logout,
   quickActions: quickActions,

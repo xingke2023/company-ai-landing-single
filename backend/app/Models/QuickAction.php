@@ -90,6 +90,15 @@ class QuickAction extends Model
                 ];
                 break;
 
+            case 'external_open':
+                // 打开完整外部 URL（跨域名，如第三方 SaaS），report.js 仍自动补 ?token=&from=miniapp
+                // 区别于 'external'：'external' 不带 token，这个带
+                $node['externalAuth'] = [
+                    'url' => $this->target_path,
+                    'title' => $this->target_title,
+                ];
+                break;
+
             case 'route':
                 // 直接 wx.navigateTo 到小程序原生页（区别于 'open' 走 web-view 容器）
                 $node['route'] = $this->target_path;

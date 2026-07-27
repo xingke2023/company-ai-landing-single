@@ -113,19 +113,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (credentials: LoginCredentials) => {
     const response = await authApi.login(credentials);
-    setToken(response.token);
+    const authToken = response.jwt_token || response.token;
+    setToken(authToken);
     setUser(response.user);
     setAuthFailed(false);
-    safeLS.set('auth_token', response.token);
+    safeLS.set('auth_token', authToken);
     safeLS.set('auth_user', JSON.stringify(response.user));
   };
 
   const register = async (credentials: RegisterCredentials) => {
     const response = await authApi.register(credentials);
-    setToken(response.token);
+    const authToken = response.jwt_token || response.token;
+    setToken(authToken);
     setUser(response.user);
     setAuthFailed(false);
-    safeLS.set('auth_token', response.token);
+    safeLS.set('auth_token', authToken);
     safeLS.set('auth_user', JSON.stringify(response.user));
   };
 

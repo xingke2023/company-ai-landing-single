@@ -2,7 +2,7 @@
   "miniprogramRoot": "./",
   "projectname": "clawcn-template-miniprogram",
   "description": "ClawCN 助手小程序前端",
-  "appid": "wx81855e163e189a51",
+  "appid": "touristappid",
   "setting": {
     "urlCheck": true,
     "es6": false,

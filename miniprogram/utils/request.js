@@ -36,12 +36,49 @@ function _persistAuth(data) {
   app.globalData.token = authToken;
   app.globalData.user = data.user;
   app.globalData.storeId = data.store_id;
+  // 认证中心原生 accessToken（非本项目自家 jwt_token）：访问认证中心生态内其他服务（如 ai.xingke888.com）要用这个
+  // 仅 15 分钟有效，配合 ssoRefreshToken 现用现换（见 refreshSsoToken），不长期依赖这个缓存值
+  app.globalData.ssoToken = data.sso_access_token || '';
+  app.globalData.ssoRefreshToken = data.sso_refresh_token || '';
   try {
     wx.setStorageSync('token', authToken);
     wx.setStorageSync('user', data.user);
     wx.setStorageSync('storeId', data.store_id);
+    wx.setStorageSync('ssoToken', app.globalData.ssoToken);
+    wx.setStorageSync('ssoRefreshToken', app.globalData.ssoRefreshToken);
   } catch (e) { /* ignore */ }
   return data;
+}
+
+/**
+ * 现换一个新鲜的认证中心 accessToken（15分钟有效期，用前现换，效果上等于不用操心过期）。
+ * 用 ssoRefreshToken 换新 accessToken；成功后 refreshToken 会轮换，一并存新的。
+ * 失败（refreshToken 也失效了）则 reject，调用方回退用旧的缓存 ssoToken 或提示重新登录。
+ */
+function refreshSsoToken() {
+  var app = getApp();
+  var refreshToken = app.globalData.ssoRefreshToken || '';
+  if (!refreshToken) {
+    return Promise.reject(new Error('无 refreshToken'));
+  }
+  return callBackend('/auth/sso/refresh', {
+    method: 'POST',
+    data: { refreshToken: refreshToken },
+  }).then(function (res) {
+    if (res.statusCode === 200 && res.data && res.data.accessToken) {
+      app.globalData.ssoToken = res.data.accessToken;
+      if (res.data.refreshToken) {
+        app.globalData.ssoRefreshToken = res.data.refreshToken;
+      }
+      try {
+        wx.setStorageSync('ssoToken', app.globalData.ssoToken);
+        wx.setStorageSync('ssoRefreshToken', app.globalData.ssoRefreshToken);
+      } catch (e) { /* ignore */ }
+      return app.globalData.ssoToken;
+    }
+    var msg = (res.data && (res.data.message || res.data.detail)) || ('HTTP ' + res.statusCode);
+    throw new Error(msg);
+  });
 }
 
 /**
@@ -54,6 +91,28 @@ function ssoLogin(identifier, password) {
   return callBackend('/auth/sso/login', {
     method: 'POST',
     data: { identifier: identifier, password: password },
+  }).then(function (res) {
+    if (res.statusCode === 200 && res.data && (res.data.jwt_token || res.data.token)) {
+      return _persistAuth(res.data);
+    }
+    var msg = (res.data && (res.data.message || res.data.detail)) || ('HTTP ' + res.statusCode);
+    throw new Error(msg);
+  });
+}
+
+/**
+ * SSO 注册 —— 后端 POST /auth/sso/register（桥接外部 Auth Center 建号，成功后自动登录）
+ * body: { username, password, name?, email? }
+ * username 3~50位字母/数字/下划线，password 至少8位（认证中心自己的要求）
+ * 成功返回与 ssoLogin 同形状的 { token, jwt_token, store_id, user }
+ */
+function ssoRegister(username, password, name, email) {
+  var body = { username: username, password: password };
+  if (name) { body.name = name; }
+  if (email) { body.email = email; }
+  return callBackend('/auth/sso/register', {
+    method: 'POST',
+    data: body,
   }).then(function (res) {
     if (res.statusCode === 200 && res.data && (res.data.jwt_token || res.data.token)) {
       return _persistAuth(res.data);
@@ -95,10 +154,14 @@ function clearAuth() {
   app.globalData.token = '';
   app.globalData.user = null;
   app.globalData.storeId = null;
+  app.globalData.ssoToken = '';
+  app.globalData.ssoRefreshToken = '';
   try {
     wx.removeStorageSync('token');
     wx.removeStorageSync('user');
     wx.removeStorageSync('storeId');
+    wx.removeStorageSync('ssoToken');
+    wx.removeStorageSync('ssoRefreshToken');
   } catch (e) { /* ignore */ }
 }
 
@@ -121,4 +184,4 @@ function request(path, options) {
   });
 }
 
-module.exports = { request: request, login: login, ssoLogin: ssoLogin, clearAuth: clearAuth };
+module.exports = { request: request, login: login, ssoLogin: ssoLogin, ssoRegister: ssoRegister, clearAuth: clearAuth, refreshSsoToken: refreshSsoToken };
