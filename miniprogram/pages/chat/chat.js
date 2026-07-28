@@ -162,16 +162,24 @@ function feather(path, color) {
   return svgIcon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + path + '</svg>');
 }
 function botSvg(color) {
-  // 友好机器人头像：天线 + 圆角头框 + 两眼 + 一抹微笑
-  // 与 feather() 区别：眼睛是实心圆，需要 fill
   return svgIcon(
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="' + color + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
-    '<line x1="12" y1="2.5" x2="12" y2="5"/>' +
-    '<circle cx="12" cy="5.2" r="1.2" fill="' + color + '" stroke="none"/>' +
-    '<rect x="3.6" y="7" width="16.8" height="13" rx="2.6"/>' +
-    '<circle cx="9" cy="13.5" r="1.4" fill="' + color + '" stroke="none"/>' +
-    '<circle cx="15" cy="13.5" r="1.4" fill="' + color + '" stroke="none"/>' +
-    '<path d="M9.5 17 Q12 18.4 14.5 17"/>' +
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="' + color + '" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
+    // 天线
+    '<line x1="12" y1="1.8" x2="12" y2="4.6"/>' +
+    '<circle cx="12" cy="1.4" r="1.1" fill="' + color + '" stroke="none"/>' +
+    // 头部
+    '<rect x="3.5" y="5.5" width="17" height="14" rx="4"/>' +
+    // 耳部凸块
+    '<rect x="1" y="10" width="2.5" height="3.5" rx="1.2"/>' +
+    '<rect x="20.5" y="10" width="2.5" height="3.5" rx="1.2"/>' +
+    // 左眼（轮廓圆 + 实心瞳孔）
+    '<circle cx="8.8" cy="11.5" r="2.1"/>' +
+    '<circle cx="8.8" cy="11.5" r="0.85" fill="' + color + '" stroke="none"/>' +
+    // 右眼
+    '<circle cx="15.2" cy="11.5" r="2.1"/>' +
+    '<circle cx="15.2" cy="11.5" r="0.85" fill="' + color + '" stroke="none"/>' +
+    // 微笑
+    '<path d="M8.8 15.4 Q12 17.6 15.2 15.4"/>' +
     '</svg>'
   );
 }
@@ -198,12 +206,29 @@ var ICONS = {
   shoppingBag: feather('<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>'),
   alertCircle: feather('<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'),
   settings:    feather('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'),
+  trash:       feather('<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>'),
+};
+
+// 快捷胶囊专用蓝色图标（同路径，换色 #1A6DB5）
+var BLUE = '#1A6DB5';
+var ICONS_BLUE = {
+  chartBar:   feather('<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>', BLUE),
+  trendingUp: feather('<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>', BLUE),
+  upload:     feather('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>', BLUE),
+  truck:      feather('<rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>', BLUE),
+  zap:        feather('<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>', BLUE),
+  clipboard:  feather('<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>', BLUE),
+  package:    feather('<line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>', BLUE),
+  dollarSign: feather('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', BLUE),
+  trash:      feather('<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>', BLUE),
+  settings:   feather('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>', BLUE),
 };
 
 var EMOJI_ICON_MAP = {
   '📊': 'chartBar', '📈': 'trendingUp', '📤': 'upload', '🚚': 'truck',
   '💡': 'zap',      '📝': 'clipboard',  '📦': 'package', '💰': 'dollarSign',
   '🛍': 'shoppingBag', '🛒': 'shoppingBag', '⚙️': 'settings', '⚠️': 'alertCircle',
+  '🗑️': 'trash', '🗑': 'trash',
 };
 
 // ─── Markdown → HTML (轻量版，给 rich-text 用) ──────────────────────────────
@@ -497,12 +522,6 @@ Page({
   onLoad: function () {
     var app = getApp();
 
-    // 必须先选行业：未选则回「选择行业」页（每次进入都要选，industry 仅会话级）
-    if (!app.globalData.industry || !app.globalData.industry.slug) {
-      wx.redirectTo({ url: '/pages/industry/industry' });
-      return;
-    }
-
     var sys = getWin();
     this.setData({
       statusBarHeight: sys.statusBarHeight || 20,
@@ -511,6 +530,9 @@ Page({
 
     this._sessionId = null;
 
+    if (!app.globalData.industry) {
+      app.globalData.industry = { slug: 'fresh' };
+    }
     var ind = app.globalData.industry;
     // 外部行业（如进销存及CRM）：菜单/标题/接口走外部后端（app2），是纯菜单启动器，
     // 无 AI、不依赖本项目登录；隐藏输入框/登录表单，菜单按钮 web-view 打开外部页。
@@ -612,10 +634,27 @@ Page({
     var base = (ind && ind.apiBase) || ''; // 外部行业把菜单请求指向 app2
     api.quickActions(slug, base).then(function (res) {
       var list = res && res.data;
-      if (list && list.length) {
-        self.setData({ quickActions: list });
-        wx.nextTick(function () { self._recomputeMsgsHeight(); });
+      if (!list || !list.length) { return; }
+      self.setData({ quickActions: list });
+      // 首次加载：提取 shortcuts 存起来，由 _greetLoggedIn 在问候语之后推入
+      if (!self._initShortcuts) {
+        for (var i = 0; i < list.length; i++) {
+          if (list[i].shortcuts && list[i].shortcuts.length) {
+            self._initShortcuts = list[i].shortcuts.map(function (it) {
+              var iconKey = EMOJI_ICON_MAP[it.emoji];
+              var svg = iconKey ? (ICONS_BLUE[iconKey] || ICONS[iconKey]) : '';
+              return Object.assign({}, it, { iconSvg: svg });
+            });
+            // 若问候语已推完在等快捷行，立即补推
+            if (self._shortcutsPending) {
+              self._shortcutsPending = false;
+              self._pushShortcuts(self._initShortcuts);
+            }
+            break;
+          }
+        }
       }
+      wx.nextTick(function () { self._recomputeMsgsHeight(); });
     }).catch(function () { /* 保留默认按钮 */ });
   },
 
@@ -666,6 +705,14 @@ Page({
     self._pushAi('嗨，' + name + '！👋 欢迎回来～', 600);
     setTimeout(function () {
       self._pushAi(greeting, 1100);
+      // 问候语推完（1100ms 后）再追加快捷行
+      setTimeout(function () {
+        if (self._initShortcuts) {
+          self._pushShortcuts(self._initShortcuts);
+        } else {
+          self._shortcutsPending = true; // 快捷数据还没到，等 _loadQuickActions 回调补推
+        }
+      }, 1200);
     }, 1500);
   },
 
@@ -687,6 +734,10 @@ Page({
     var list = this.data.quickActions || [];
     for (var i = 0; i < list.length; i++) {
       if (list[i].key === key) { action = list[i]; break; }
+    }
+    if (action && action.shortcuts && action.shortcuts.length) {
+      this._pushShortcuts(action.shortcuts);
+      return;
     }
     if (action && action.items && action.items.length) {
       this._openReportMenu(action.items, key);
@@ -789,6 +840,35 @@ Page({
       url: url,
       fail: function () { wx.showToast({ title: '打开失败', icon: 'none' }); },
     });
+  },
+
+  _pushShortcuts: function (shortcuts) {
+    var msgs = this.data.msgs;
+    if (msgs.length && msgs[msgs.length - 1].from === 'shortcuts') { return; }
+    var enriched = shortcuts.map(function (it) {
+      var iconKey = EMOJI_ICON_MAP[it.emoji];
+      var svg = iconKey ? (ICONS_BLUE[iconKey] || ICONS[iconKey]) : '';
+      return Object.assign({}, it, { iconSvg: svg });
+    });
+    this.setData({ msgs: msgs.concat([{ id: nextId(), from: 'shortcuts', shortcuts: enriched }]) });
+    this._scrollDown();
+  },
+
+  onShortcutTap: function (e) {
+    var item = e.currentTarget.dataset.item || {};
+    if (item.route) {
+      if (!this._requireLogin()) return;
+      wx.navigateTo({ url: item.route, fail: function () { wx.showToast({ title: '页面不存在', icon: 'none' }); } });
+      return;
+    }
+    if (item.external) {
+      wx.navigateTo({ url: '/pages/report/report?url=' + encodeURIComponent(item.external), fail: function () { wx.showToast({ title: '打开失败', icon: 'none' }); } });
+      return;
+    }
+    if (item.prompt) {
+      this.setData({ chatInput: item.prompt });
+      this.onSend();
+    }
   },
 
   _openReportMenu: function (items, key) {

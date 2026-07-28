@@ -36,9 +36,25 @@
     show-scrollbar="{{false}}"
   >
     <block wx:for="{{msgs}}" wx:key="id">
-      <view class="row row-{{item.from}}">
-        <view wx:if="{{item.from === 'ai' && !item.weblink}}" class="bubble-avatar"><image class="bubble-avatar-svg" src="{{icons.bot}}" mode="aspectFit" /></view>
+      <!-- 快捷按钮行（主页展开，左右均匀分布） -->
+      <view wx:if="{{item.from === 'shortcuts'}}" class="shortcuts-row">
+        <view
+          wx:for="{{item.shortcuts}}"
+          wx:for-item="sc"
+          wx:key="key"
+          class="shortcut-chip"
+          hover-class="shortcut-chip--pressed"
+          hover-stay-time="100"
+          bindtap="onShortcutTap"
+          data-item="{{sc}}"
+        >
+          <image wx:if="{{sc.iconSvg}}" class="shortcut-icon" src="{{sc.iconSvg}}" mode="aspectFit"/>
+          <text wx:else class="shortcut-icon-fallback">{{sc.emoji}}</text>
+          <text class="shortcut-label">{{sc.label}}</text>
+        </view>
+      </view>
 
+      <view wx:elif="{{true}}" class="row row-{{item.from}}">
         <!-- 打开网页链接按钮（如「打开完整库存页」） -->
         <view
           wx:if="{{item.weblink}}"
@@ -152,7 +168,6 @@
     </block>
 
     <view wx:if="{{typing}}" class="row row-ai">
-      <view class="bubble-avatar"><image class="bubble-avatar-svg" src="{{icons.bot}}" mode="aspectFit" /></view>
       <view class="typing-bubble">
         <view class="dot-anim dot-0"></view>
         <view class="dot-anim dot-1"></view>

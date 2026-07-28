@@ -27,6 +27,8 @@ class IndustryResource extends Resource
 
     protected static ?int $navigationSort = 19;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     public static function form(Schema $schema): Schema
     {
         return $schema

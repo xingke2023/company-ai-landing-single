@@ -91,21 +91,6 @@
 .row-user { justify-content: flex-end; }
 .row-ai { justify-content: flex-start; }
 
-.bubble-avatar {
-  width: 52rpx;
-  height: 52rpx;
-  border-radius: 50%;
-  background: #fff;
-  border: 3rpx solid #E65C46;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 26rpx;
-  flex-shrink: 0;
-  margin-right: 14rpx;
-  margin-top: 4rpx;
-}
-.bubble-avatar-svg { width: 32rpx; height: 32rpx; }
 
 .bubble {
   max-width: 78%;
@@ -731,3 +716,40 @@
   border: none;
 }
 .btn-primary[disabled] { background: rgba(230,92,70,0.30); }
+
+/* 主页快捷按钮行 */
+.shortcuts-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  padding: 12rpx 0 4rpx;
+  margin-bottom: 12rpx;
+}
+.shortcut-chip {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14rpx;
+  background: #E8F4FF;
+  border-radius: 50rpx;
+  padding: 22rpx 32rpx;
+  box-shadow: 0 6rpx 20rpx rgba(56,132,220,0.15);
+}
+.shortcut-chip--pressed { opacity: 0.6; }
+.shortcut-icon {
+  width: 38rpx;
+  height: 38rpx;
+  flex-shrink: 0;
+}
+.shortcut-icon-fallback {
+  font-size: 36rpx;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.shortcut-label {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #1A6DB5;
+  white-space: nowrap;
+}

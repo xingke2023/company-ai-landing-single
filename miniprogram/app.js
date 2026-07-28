@@ -1,7 +1,7 @@
 // app.js
 App({
   globalData: {
-    apiBaseUrl: 'https://app61.xingke888.com/api',
+    apiBaseUrl: 'https://app51.xingke888.com/api',
     token: '',
     // 认证中心原生 accessToken：访问认证中心生态内其他服务（如 ai.xingke888.com 公众号写作）要用这个，不是上面的本项目 token
     ssoToken: '',

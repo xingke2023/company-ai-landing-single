@@ -115,6 +115,26 @@ class QuickAction extends Model
                 $node['home'] = $this->target_path ?: '/pages/industry/industry';
                 break;
 
+            case 'shortcuts':
+                // 展开一排快捷按钮到聊天区（不弹 popover，不跳页）
+                $node['shortcuts'] = $this->items->map(function (QuickActionItem $item) {
+                    $sub = [
+                        'key' => 'qai-'.$item->id,
+                        'emoji' => $item->emoji ?? '',
+                        'label' => $item->label,
+                    ];
+                    if ($item->item_type === 'route') {
+                        $sub['route'] = $item->route;
+                    } elseif ($item->item_type === 'external') {
+                        $sub['external'] = $item->route;
+                    } else {
+                        $sub['prompt'] = $item->prompt ?? '';
+                    }
+
+                    return $sub;
+                })->values()->all();
+                break;
+
             case 'menu':
                 $node['items'] = $this->items->map(function (QuickActionItem $item) {
                     $sub = [
@@ -125,6 +145,8 @@ class QuickAction extends Model
                     ];
                     if ($item->item_type === 'route') {
                         $sub['route'] = $item->route;
+                    } elseif ($item->item_type === 'external') {
+                        $sub['external'] = $item->route;
                     } else {
                         $sub['prompt'] = $item->prompt ?? '';
                     }

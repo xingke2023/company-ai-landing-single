@@ -2,7 +2,7 @@
 // 通用 web-view 容器：按 path 参数加载前端任意页面，并把小程序登录 token 通过 ?token= 传过去。
 // 用法：wx.navigateTo({ url: '/pages/report/report?path=%2Finventory&title=今日库存' })
 var api = require('../../utils/api.js');
-var WEB_ORIGIN = 'https://app61.xingke888.com';
+var WEB_ORIGIN = 'https://app51.xingke888.com';
 var DEFAULT_PATH = '/sales-report';
 
 Page({

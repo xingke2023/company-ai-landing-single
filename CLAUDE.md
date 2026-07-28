@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **Backend**: Laravel 12 API (PHP 8.4) — `backend/`
 - **Frontend**: Next.js 16 (React 19.2, TypeScript) — `frontend/`
-- **Admin Panel**: Filament v3 (Livewire v3) — `http://0.0.0.0:8081/admin`
+- **Admin Panel**: Filament v3 (Livewire v3) — `http://0.0.0.0:8303/admin`
 - **WeChat Mini Program**: 原生小程序（ES5 风格）— `miniprogram/`，复用同一套后端 API
 
 ---
@@ -66,18 +66,33 @@ POST /api/sales
 
 ## Current Ports
 
-> ⚠️ 同机双栈部署：本项目（company-ai / PostgreSQL）跑在 `:8081` + `:3114`；另一套 shejian-hk（MySQL）占用 `:8080` + `:3113`。下表是**本项目**的端口。
+> ⚠️ 同机双栈部署：本项目（company-ai / PostgreSQL）跑在 `:8303` + `:3117`。下表是**本项目**的端口。
 
 | Service | Port | URL |
 |---------|------|-----|
-| Laravel API + Filament Admin | 8081 | `http://0.0.0.0:8081` |
-| Next.js Frontend | 3114 | `http://0.0.0.0:3114` |
+| Laravel API + Filament Admin | 8303 | `http://0.0.0.0:8303` |
+| Next.js Frontend | 3117 | `http://0.0.0.0:3117` |
+
+
+## 项目路径 & 进程管理
+
+- **项目根目录**: `/home/mi/app61.xingke888.com`
+- **运行用户**: `mi`（PM2 由 `pm2-mi.service` 管理）
+
+### PM2 管理（必须加 sudo -u mi）
+```bash
+sudo -u mi pm2 list
+sudo -u mi pm2 restart app61-backend
+sudo -u mi pm2 restart app61-frontend
+sudo -u mi pm2 logs app61-backend --lines 50
+sudo -u mi pm2 save
+```
 
 ## Development Commands
 
 ### Backend (run from `backend/`)
 ```bash
-php artisan serve --host=0.0.0.0 --port=8081
+php artisan serve --host=0.0.0.0 --port=8303
 
 php artisan migrate
 php artisan migrate:fresh --seed
@@ -95,7 +110,7 @@ php artisan test tests/Feature/FooTest.php
 
 ### Frontend (run from `frontend/`)
 ```bash
-npm run dev       # Dev server on :3114
+npm run dev       # Dev server on :3117
 npm run build     # Production build (use to verify TypeScript errors)
 npm run lint
 npx shadcn@latest add [component-name]
@@ -277,13 +292,13 @@ Filament 发布的 `app.css` 只含 Filament 自身组件用的类。自定义�
 ## 前端注意事项
 
 ### 生产模式运行
-前端以 `npm run start`（生产模式）运行在 `:3114`，**修改前端代码后必须重新 build 才能生效**：
+前端以 `npm run start`（生产模式）运行在 `:3117`，**修改前端代码后必须重新 build 才能生效**：
 ```bash
 cd frontend && npm run build
 # 重启：pkill 只杀父 shell，子 next-server 会被 init 收养继续占端口
 pgrep -f next-server   # 找真正 PID
 kill <PID> && nohup npm run start > /tmp/nextjs.log 2>&1 &
-ss -ltn | grep :3114   # 确认端口释放后再启动
+ss -ltn | grep :3117   # 确认端口释放后再启动
 ```
 
 ### 日期处理陷阱
@@ -365,7 +380,7 @@ function todayStr() {
 **前端配合 web-view**：
 - `lib/auth-context.tsx`：URL 带 `?token=` 时自动登录，`history.replaceState` 抹掉 token
 - 页面在 `from=miniapp` 时**未登录不跳 `/login`**（那会落到 Laravel 404），改为 `backToChat()`
-- ⚠️ **Tailwind v4 的 `@layer` 在微信 web-view 老内核不被应用 → 整页无样式**。已在 `frontend/postcss.config.mjs` 加 `@csstools/postcss-cascade-layers` 把 `@layer` 拍平。改 postcss 后必须 `npm run build` + 重启 `:3114`。
+- ⚠️ **Tailwind v4 的 `@layer` 在微信 web-view 老内核不被应用 → 整页无样式**。已在 `frontend/postcss.config.mjs` 加 `@csstools/postcss-cascade-layers` 把 `@layer` 拍平。改 postcss 后必须 `npm run build` + 重启 `:3117`。
 
 ---
 
@@ -375,15 +390,15 @@ nginx 反向代理（`/etc/nginx/sites-enabled/` 下每域名一份）：
 
 | 域名 | 代理到 | 内容 |
 |------|--------|------|
-| `company.xingke888.com` | `:8081` + `:3114` | 本项目主域名：`/api`,`/admin`,`/livewire` 等 → `:8081`；其余 catch-all → `:3114` |
-| `paper.xingke888.com` | `:8081` + `:3114` | 与 `company.*` 同规则，专供小程序 web-view（前后端同源） |
-| `s.xingke888.com` | `:8081` | 全部路径 → 本项目后端（旧域名） |
+| `company.xingke888.com` | `:8303` + `:3117` | 本项目主域名：`/api`,`/admin`,`/livewire` 等 → `:8303`；其余 catch-all → `:3117` |
+| `paper.xingke888.com` | `:8303` + `:3117` | 与 `company.*` 同规则，专供小程序 web-view（前后端同源） |
+| `s.xingke888.com` | `:8303` | 全部路径 → 本项目后端（旧域名） |
 
 SSL 证书由 Let's Encrypt 签发（`/etc/letsencrypt/live/`）。
 
 **⚠️ nginx 配置修改后需以 root 执行 `nginx -t && nginx -s reload`**，非 root 执行 `nginx -t` 会因证书权限报错（误报）。
 
-**⚠️ Filament 静态资源缓存：** 各域名的 `/css/filament/`、`/js/filament/`、`/fonts/filament/` 指向 `:8081`。升级 Filament 后如样式异常，先确认该 location 规则仍有效。
+**⚠️ Filament 静态资源缓存：** 各域名的 `/css/filament/`、`/js/filament/`、`/fonts/filament/` 指向 `:8303`。升级 Filament 后如样式异常，先确认该 location 规则仍有效。
 
 ---
 
