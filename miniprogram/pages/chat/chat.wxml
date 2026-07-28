@@ -276,7 +276,8 @@
             data-route="{{item.route}}"
             data-external="{{item.external}}"
           >
-            <view class="popover-item-emoji">{{item.emoji}}</view>
+            <image wx:if="{{item.iconSvg}}" class="popover-item-icon-svg" src="{{item.iconSvg}}" mode="aspectFit"/>
+            <view wx:else class="popover-item-emoji">{{item.emoji}}</view>
             <view class="popover-item-texts">
               <view class="popover-item-label">{{item.label}}</view>
               <view wx:if="{{item.desc}}" class="popover-item-desc">{{item.desc}}</view>

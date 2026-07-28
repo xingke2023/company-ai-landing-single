@@ -550,6 +550,11 @@
   text-align: center;
   flex-shrink: 0;
 }
+.popover-item-icon-svg {
+  width: 40rpx;
+  height: 40rpx;
+  flex-shrink: 0;
+}
 .popover-item-texts {
   flex: 1;
   display: flex;

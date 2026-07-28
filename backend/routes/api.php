@@ -36,13 +36,13 @@ Route::post('/auth/sso/register', [SsoAuthController::class, 'register']);
 Route::post('/auth/sso/exchange', [SsoAuthController::class, 'exchange']);
 Route::post('/auth/sso/refresh', [SsoAuthController::class, 'refresh']);
 
+// 公开接口：无需登录
+Route::get('/quick-actions', [QuickActionController::class, 'index']);
+
 // Protected routes
 Route::middleware('auth.hybrid')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
-
-    // 小程序聊天页底部快捷按钮（后台可配）
-    Route::get('/quick-actions', [QuickActionController::class, 'index']);
 
     // AI 助手
     Route::post('/ai/message', [AiAssistantController::class, 'message']);

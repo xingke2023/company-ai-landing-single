@@ -186,6 +186,24 @@ var ICONS = {
   arrowUp: feather('<line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>', '#FFFFFF'),
   bot: botSvg('#E65C46'),       // 红色版（用于白色圆形头像内部）
   botWhite: botSvg('#FFFFFF'),  // 白色版（用于红色按钮等深色背景）
+  // 子菜单轮廓图标
+  chartBar:    feather('<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>'),
+  trendingUp:  feather('<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>'),
+  upload:      feather('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>'),
+  truck:       feather('<rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>'),
+  zap:         feather('<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>'),
+  clipboard:   feather('<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>'),
+  package:     feather('<line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>'),
+  dollarSign:  feather('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'),
+  shoppingBag: feather('<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>'),
+  alertCircle: feather('<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'),
+  settings:    feather('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'),
+};
+
+var EMOJI_ICON_MAP = {
+  '📊': 'chartBar', '📈': 'trendingUp', '📤': 'upload', '🚚': 'truck',
+  '💡': 'zap',      '📝': 'clipboard',  '📦': 'package', '💰': 'dollarSign',
+  '🛍': 'shoppingBag', '🛒': 'shoppingBag', '⚙️': 'settings', '⚠️': 'alertCircle',
 };
 
 // ─── Markdown → HTML (轻量版，给 rich-text 用) ──────────────────────────────
@@ -732,6 +750,7 @@ Page({
     if (!prompt || self.data.aiBusy) return;
     self._pushUser(prompt);
     self.setData({ aiBusy: true, typing: true });
+    if (self._serviceRestricted()) return;
     self._scrollDown();
     var app = getApp();
     var ind = app.globalData.industry;
@@ -796,8 +815,12 @@ Page({
       if (left + menuW > winW - margin) left = winW - margin - menuW;
       var bottom = Math.round(winH - anchorTop + gap);
       var arrowLeft = Math.round(anchorCenterX - left); // 三角形相对 popover 左边
+      var enriched = items.map(function (it) {
+        var iconKey = EMOJI_ICON_MAP[it.emoji];
+        return Object.assign({}, it, { iconSvg: iconKey ? ICONS[iconKey] : '' });
+      });
       self.setData({
-        reportMenuItems: items,
+        reportMenuItems: enriched,
         reportMenuOpen: true,
         reportMenuKey: key,
         reportMenuStyle: 'left:' + left + 'px;bottom:' + bottom + 'px;width:' + menuW + 'px;',
@@ -998,7 +1021,8 @@ Page({
       self._pushMedia({ type: 'voice', tempPath: res.tempFilePath, duration: dur });
       self.setData({ aiBusy: true, typing: true });
       self._scrollDown();
-      // 外部行业（如进销存CRM）语音上传走外部后端 /ai/voice
+      if (self._serviceRestricted()) return;
+      // 外部行业语音上传走外部后端 /ai/voice
       var vInd = getApp().globalData.industry;
       var vOpts = { sessionId: self._sessionId };
       if (vInd && vInd.apiBase) {
@@ -1166,6 +1190,15 @@ Page({
     this._scrollDown();
   },
 
+  _serviceRestricted: function () {
+    var ind = getApp().globalData.industry || {};
+    if (ind.apiBase) return false;
+    if (ind.slug === 'fresh') return false;
+    this.setData({ aiBusy: false, typing: false });
+    this._pushAi('服务暂未开通，请联系客服开通');
+    return true;
+  },
+
   _pushAi: function (text, delay) {
     var self = this;
     delay = delay || 0;
@@ -1237,6 +1270,7 @@ Page({
     self._pushUser(text);
     self.setData({ chatInput: '', aiBusy: true, typing: true });
     self._scrollDown();
+    if (self._serviceRestricted()) return;
 
     var app = getApp();
     var ind = app.globalData.industry;
