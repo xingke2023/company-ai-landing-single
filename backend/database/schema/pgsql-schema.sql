@@ -2,14 +2,15 @@
 -- PostgreSQL database dump
 --
 
-\restrict QQt9iG8Zj77BbfoH43GAHkwbxwWz6xK8wVrHoU0MvTF9pUHZKMoMh4FX85q0Ibc
+\restrict u3KfIp4k0R2Qh1CB7pcGtDkIncfuIkcxfxuIZF0Fk7BVvrHA6gpTxnHhH1wO42m
 
--- Dumped from database version 14.23 (Ubuntu 14.23-0ubuntu0.22.04.1)
--- Dumped by pg_dump version 14.23 (Ubuntu 14.23-0ubuntu0.22.04.1)
+-- Dumped from database version 18.4 (Ubuntu 18.4-0ubuntu0.26.04.1)
+-- Dumped by pg_dump version 18.4 (Ubuntu 18.4-0ubuntu0.26.04.1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -349,7 +350,7 @@ CREATE TABLE public.chat_logs (
     occurred_at timestamp(0) without time zone,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    CONSTRAINT chat_logs_direction_check CHECK (((direction)::text = ANY ((ARRAY['inbound'::character varying, 'outbound'::character varying])::text[])))
+    CONSTRAINT chat_logs_direction_check CHECK (((direction)::text = ANY (ARRAY[('inbound'::character varying)::text, ('outbound'::character varying)::text])))
 );
 
 
@@ -1374,6 +1375,118 @@ ALTER SEQUENCE public.failed_jobs_id_seq OWNED BY public.failed_jobs.id;
 
 
 --
+-- Name: industries; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.industries (
+    id bigint NOT NULL,
+    slug character varying(50) NOT NULL,
+    name character varying(50) NOT NULL,
+    emoji character varying(16),
+    title character varying(100),
+    description character varying(200),
+    sort_order integer DEFAULT 0 NOT NULL,
+    enabled boolean DEFAULT true NOT NULL,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone,
+    api_base character varying(200),
+    api_token text,
+    ai_path character varying(200),
+    ai_media boolean DEFAULT false NOT NULL,
+    greeting text
+);
+
+
+--
+-- Name: COLUMN industries.slug; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.industries.slug IS '行业标识，如 fresh / restaurant；quick_actions.industry 用它过滤';
+
+
+--
+-- Name: COLUMN industries.name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.industries.name IS '行业名称，如 生鲜门店';
+
+
+--
+-- Name: COLUMN industries.emoji; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.industries.emoji IS '行业图标 emoji';
+
+
+--
+-- Name: COLUMN industries.title; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.industries.title IS '该行业聊天页顶栏品牌标题';
+
+
+--
+-- Name: COLUMN industries.description; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.industries.description IS '行业说明（选择页副标题）';
+
+
+--
+-- Name: COLUMN industries.api_base; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.industries.api_base IS '该行业菜单/标题/接口的外部后端 base（如 https://app2.xingke888.com/api）；留空=用本项目';
+
+
+--
+-- Name: COLUMN industries.api_token; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.industries.api_token IS '外部行业服务账号 token；随 /api/industries 返回，小程序无需弹登录框直接使用';
+
+
+--
+-- Name: COLUMN industries.ai_path; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.industries.ai_path IS '外部行业 AI 聊天接口路径，如 /api/chat/message；留空默认 /ai/message';
+
+
+--
+-- Name: COLUMN industries.ai_media; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.industries.ai_media IS '该行业聊天是否启用语音/拍照/相册/文件输入';
+
+
+--
+-- Name: COLUMN industries.greeting; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.industries.greeting IS '行业欢迎语（聊天页登录后展示）；留空小程序用通用兜底';
+
+
+--
+-- Name: industries_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.industries_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: industries_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.industries_id_seq OWNED BY public.industries.id;
+
+
+--
 -- Name: intelligence_reports; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1759,6 +1872,61 @@ CREATE SEQUENCE public.leave_requests_id_seq
 --
 
 ALTER SEQUENCE public.leave_requests_id_seq OWNED BY public.leave_requests.id;
+
+
+--
+-- Name: menu_templates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.menu_templates (
+    id bigint NOT NULL,
+    industry character varying(50) NOT NULL,
+    name character varying(50) NOT NULL,
+    is_active boolean DEFAULT false NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: COLUMN menu_templates.industry; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.menu_templates.industry IS '归属行业 slug（关联 industries.slug）';
+
+
+--
+-- Name: COLUMN menu_templates.name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.menu_templates.name IS '模版名，如 默认模版 / 完整版 / 促销版';
+
+
+--
+-- Name: COLUMN menu_templates.is_active; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.menu_templates.is_active IS '该行业当前生效的模版（每行业仅一个 true）';
+
+
+--
+-- Name: menu_templates_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.menu_templates_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: menu_templates_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.menu_templates_id_seq OWNED BY public.menu_templates.id;
 
 
 --
@@ -2575,7 +2743,9 @@ CREATE TABLE public.quick_actions (
     enabled boolean DEFAULT true NOT NULL,
     sort_order integer DEFAULT 0 NOT NULL,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    industry character varying(50),
+    menu_template_id bigint
 );
 
 
@@ -2640,6 +2810,13 @@ COMMENT ON COLUMN public.quick_actions.admin_only IS '仅 is_admin 用户可见'
 --
 
 COMMENT ON COLUMN public.quick_actions.store_id IS 'null=全门店通用，否则仅该门店';
+
+
+--
+-- Name: COLUMN quick_actions.industry; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.quick_actions.industry IS '所属行业 slug（关联 industries.slug）；null=全行业通用';
 
 
 --
@@ -3446,6 +3623,45 @@ CREATE TABLE public.sessions (
 
 
 --
+-- Name: sso_users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sso_users (
+    id bigint NOT NULL,
+    sso_user_id character varying(255) NOT NULL,
+    user_id bigint NOT NULL,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: COLUMN sso_users.sso_user_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.sso_users.sso_user_id IS 'Auth Center 用户 ID（JWT sub / login user.id）';
+
+
+--
+-- Name: sso_users_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.sso_users_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: sso_users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.sso_users_id_seq OWNED BY public.sso_users.id;
+
+
+--
 -- Name: stores; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4074,6 +4290,13 @@ ALTER TABLE ONLY public.failed_jobs ALTER COLUMN id SET DEFAULT nextval('public.
 
 
 --
+-- Name: industries id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.industries ALTER COLUMN id SET DEFAULT nextval('public.industries_id_seq'::regclass);
+
+
+--
 -- Name: intelligence_reports id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4113,6 +4336,13 @@ ALTER TABLE ONLY public.jobs ALTER COLUMN id SET DEFAULT nextval('public.jobs_id
 --
 
 ALTER TABLE ONLY public.leave_requests ALTER COLUMN id SET DEFAULT nextval('public.leave_requests_id_seq'::regclass);
+
+
+--
+-- Name: menu_templates id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.menu_templates ALTER COLUMN id SET DEFAULT nextval('public.menu_templates_id_seq'::regclass);
 
 
 --
@@ -4295,6 +4525,13 @@ ALTER TABLE ONLY public.sales_uploads ALTER COLUMN id SET DEFAULT nextval('publi
 --
 
 ALTER TABLE ONLY public.schedules ALTER COLUMN id SET DEFAULT nextval('public.schedules_id_seq'::regclass);
+
+
+--
+-- Name: sso_users id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sso_users ALTER COLUMN id SET DEFAULT nextval('public.sso_users_id_seq'::regclass);
 
 
 --
@@ -4601,6 +4838,22 @@ ALTER TABLE ONLY public.failed_jobs
 
 
 --
+-- Name: industries industries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.industries
+    ADD CONSTRAINT industries_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: industries industries_slug_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.industries
+    ADD CONSTRAINT industries_slug_unique UNIQUE (slug);
+
+
+--
 -- Name: intelligence_reports intelligence_reports_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4670,6 +4923,14 @@ ALTER TABLE ONLY public.jobs
 
 ALTER TABLE ONLY public.leave_requests
     ADD CONSTRAINT leave_requests_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: menu_templates menu_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.menu_templates
+    ADD CONSTRAINT menu_templates_pkey PRIMARY KEY (id);
 
 
 --
@@ -4974,6 +5235,22 @@ ALTER TABLE ONLY public.schedules
 
 ALTER TABLE ONLY public.sessions
     ADD CONSTRAINT sessions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sso_users sso_users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sso_users
+    ADD CONSTRAINT sso_users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sso_users sso_users_sso_user_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sso_users
+    ADD CONSTRAINT sso_users_sso_user_id_unique UNIQUE (sso_user_id);
 
 
 --
@@ -5390,6 +5667,13 @@ CREATE INDEX expenses_supplier_id_index ON public.expenses USING btree (supplier
 
 
 --
+-- Name: industries_enabled_sort_order_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX industries_enabled_sort_order_index ON public.industries USING btree (enabled, sort_order);
+
+
+--
 -- Name: inv_tx_reference; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5457,6 +5741,13 @@ CREATE INDEX leave_requests_employee_id_status_index ON public.leave_requests US
 --
 
 CREATE INDEX leave_requests_store_id_start_date_index ON public.leave_requests USING btree (store_id, start_date);
+
+
+--
+-- Name: menu_templates_industry_is_active_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX menu_templates_industry_is_active_index ON public.menu_templates USING btree (industry, is_active);
 
 
 --
@@ -5590,6 +5881,13 @@ CREATE INDEX purchase_orders_supplier_id_status_index ON public.purchase_orders 
 --
 
 CREATE INDEX quick_action_items_quick_action_id_sort_order_index ON public.quick_action_items USING btree (quick_action_id, sort_order);
+
+
+--
+-- Name: quick_actions_industry_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX quick_actions_industry_index ON public.quick_actions USING btree (industry);
 
 
 --
@@ -6498,6 +6796,14 @@ ALTER TABLE ONLY public.quick_action_items
 
 
 --
+-- Name: quick_actions quick_actions_menu_template_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.quick_actions
+    ADD CONSTRAINT quick_actions_menu_template_id_foreign FOREIGN KEY (menu_template_id) REFERENCES public.menu_templates(id) ON DELETE SET NULL;
+
+
+--
 -- Name: regions regions_manager_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6706,6 +7012,14 @@ ALTER TABLE ONLY public.schedules
 
 
 --
+-- Name: sso_users sso_users_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sso_users
+    ADD CONSTRAINT sso_users_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: stores stores_manager_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6837,97 +7151,5 @@ ALTER TABLE ONLY public.wework_users
 -- PostgreSQL database dump complete
 --
 
-\unrestrict QQt9iG8Zj77BbfoH43GAHkwbxwWz6xK8wVrHoU0MvTF9pUHZKMoMh4FX85q0Ibc
-
---
--- PostgreSQL database dump
---
-
-\restrict 5Tjm7V5TalBDQCcaziWSTojk9je1gwHGdp8SWTjbsi6j3H35j1gZzMdhbKKsccF
-
--- Dumped from database version 14.23 (Ubuntu 14.23-0ubuntu0.22.04.1)
--- Dumped by pg_dump version 14.23 (Ubuntu 14.23-0ubuntu0.22.04.1)
-
-SET statement_timeout = 0;
-SET lock_timeout = 0;
-SET idle_in_transaction_session_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
-SET check_function_bodies = false;
-SET xmloption = content;
-SET client_min_messages = warning;
-SET row_security = off;
-
---
--- Data for Name: migrations; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.migrations (id, migration, batch) FROM stdin;
-1	0001_01_01_000000_create_users_table	1
-2	0001_01_01_000001_create_cache_table	1
-3	0001_01_01_000002_create_jobs_table	1
-4	2025_11_29_220023_create_personal_access_tokens_table	1
-5	2025_11_29_220222_create_posts_table	1
-6	2026_03_16_000001_create_organizations_table	1
-7	2026_03_16_000002_create_regions_table	1
-8	2026_03_16_000003_create_stores_table	1
-9	2026_03_16_000004_create_roles_permissions_tables	1
-10	2026_03_16_000005_create_saas_integrations_tables	1
-11	2026_03_16_000006_create_product_categories_table	1
-12	2026_03_16_000007_create_products_tables	1
-13	2026_03_16_000008_create_suppliers_tables	1
-14	2026_03_16_000009_create_inventory_tables	1
-15	2026_03_16_000010_create_ai_assistant_tables	1
-16	2026_03_16_000011_create_ai_forecast_tables	1
-17	2026_03_16_000012_create_promotion_tables	1
-18	2026_03_16_000013_create_competitor_tables	1
-19	2026_03_16_000014_create_finance_tables	1
-20	2026_03_16_000015_create_hr_tables	1
-21	2026_03_16_000016_create_dashboard_report_tables	1
-22	2026_03_22_070800_add_is_admin_to_users_table	1
-23	2026_03_22_082441_add_supplier_id_to_products_table	1
-24	2026_03_22_100000_create_resumes_table	1
-25	2026_03_22_111908_alter_purchase_orders_move_supplier_to_items	1
-26	2026_03_30_224524_create_sales_orders_tables	1
-27	2026_03_30_225348_add_last_sold_out_at_to_inventory_table	1
-28	2026_03_30_225639_create_product_sellout_logs_table	1
-29	2026_03_30_230102_rename_last_sold_out_at_and_drop_sellout_logs	1
-30	2026_03_31_000816_create_inventory_daily_snapshots_table	1
-31	2026_03_31_004600_create_daily_operation_logs_table	1
-32	2026_03_31_012733_create_sales_daily_summaries_table	1
-33	2026_03_31_013104_drop_unused_inventory_sales_tables	1
-34	2026_03_31_022259_drop_store_products_table	1
-35	2026_03_31_022902_add_sold_out_at_to_inventory_daily_snapshots	1
-36	2026_03_31_022902_drop_unused_supplier_finance_tables	1
-37	2026_03_31_215717_create_sales_uploads_table	1
-38	2026_04_04_022128_add_username_to_users_table	1
-39	2026_04_04_025507_add_source_columns_to_sales_daily_summaries	1
-40	2026_04_07_000001_create_chat_logs_table	1
-41	2026_04_15_214504_add_failure_fields_to_daily_operation_logs	1
-42	2026_04_17_000309_create_weather_logs_table	1
-43	2026_04_29_070457_create_damage_records_table	1
-44	2026_04_29_070458_create_supplier_refund_claims_tables	1
-45	2026_05_30_120000_create_quick_actions_tables	1
-46	2026_05_30_130000_create_app_settings_table	1
-47	2026_05_31_070311_add_image_paths_to_purchase_orders_table	1
-48	2026_05_31_093318_create_customers_table	2
-49	2026_05_31_093319_create_customer_follow_ups_table	2
-50	2026_05_31_093319_create_customer_orders_table	3
-51	2026_05_31_093320_create_customer_order_items_table	3
-\.
-
-
---
--- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
---
-
-SELECT pg_catalog.setval('public.migrations_id_seq', 51, true);
-
-
---
--- PostgreSQL database dump complete
---
-
-\unrestrict 5Tjm7V5TalBDQCcaziWSTojk9je1gwHGdp8SWTjbsi6j3H35j1gZzMdhbKKsccF
+\unrestrict u3KfIp4k0R2Qh1CB7pcGtDkIncfuIkcxfxuIZF0Fk7BVvrHA6gpTxnHhH1wO42m
 
